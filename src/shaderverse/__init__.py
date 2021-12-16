@@ -130,6 +130,9 @@ class OBJECT_PG_shaderverse(bpy.types.PropertyGroup):
     #NOTE: read documentation about 'props' to see them and their keyword arguments
     #builtin float (variable)property that blender understands
     weight: bpy.props.FloatProperty(name='float value', soft_min=0, soft_max=1)
+    render_in_2D: bpy.props.BoolProperty(name='bool toggle', default=True)
+    render_in_3D: bpy.props.BoolProperty(name='bool toggle', default=True)
+
 
     dependency_list: bpy.props.CollectionProperty(type=DependencyListItem)
     
@@ -146,20 +149,34 @@ class OBJECT_PG_shaderverse(bpy.types.PropertyGroup):
 
 
 class OBJECT_PT_shaderverse(bpy.types.Panel):
-    bl_label = "Shaderverse"
+    bl_label = ""
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
     bl_context = "modifier"
 
 
-    def draw(self, context):
+    def draw_header(self, context):
         layout = self.layout
-        row = layout.row()
+        # left_padding_percent = .1
+        # right_padding_percent = 1 - left_padding_percent
+
+        # split = layout.split(factor=left_padding_percent)
+        # left_column = split.column()
+        # center_split = split.split(factor=right_padding_percent)
+        # center_column = center_split.column()
+        # right_column = center_split.column()
+
+        # row = center_column.row()
+        layout.label(text="Shaderverse")
 
         shaderverse_generate = OBJECT_OT_shaderverse_generate
 
-        row.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
+        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
+
+    def draw(self, context):
+        pass
+
 
 
 
@@ -175,12 +192,16 @@ class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         layout = self.layout 
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
+        
+        row = col.row()
 
-        subrow = layout.row(align=True)
         this_context = context.object
         #add a label to the UI
         # layout.label(text="Weighted chance of choosing this attribute")
-        subrow.prop(this_context.shaderverse, 'weight', text="Weight Amount")
+        row.prop(this_context.shaderverse, 'weight', text="Weight Amount", slider=True)
 
         #add a new row with multiple elements in a column
         # subrow = layout.row(align=True)
@@ -192,7 +213,43 @@ class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
         # layout.prop(context.object.shaderverse, 'string_field')
         #NOTE: for more layout things see the types.UILayout in the documentation
         
+
+class OBJECT_PT_shaderverse_rendering(bpy.types.Panel):
+    bl_parent_id = "OBJECT_PT_shaderverse"
+    bl_label = "Rendering Settings"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_category = "Tool"
+
+ 
+
+
+    def draw(self, context):
+        # You can set the property values that should be used when the user
+        # presses the button in the UI.
+        layout = self.layout 
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
+        box = col.box()
+        this_context = context.object
+        #add a label to the UI
+        # layout.label(text="Weighted chance of choosing this attribute")
+        box.prop(this_context.shaderverse, 'render_in_2D', text="Include in 2D Renders")
+        # subrow2 = layout.row()
+        box.prop(this_context.shaderverse, 'render_in_3D', text="Include in 3D Renders")
+
+        #add a new row with multiple elements in a column
+        # subrow = layout.row(align=True)
+        # #add a toggle
+        # subrow.prop(context.object.shaderverse, 'bool_toggle')
+        # #add an int slider
+        # subrow.prop(context.object.shaderverse, 'int_slider')
+        # #add a custom text field in the usual layout
+        # layout.prop(context.object.shaderverse, 'string_field')
+        #NOTE: for more layout things see the types.UILayout in the documentation
         
+               
 
 class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
     bl_parent_id = "OBJECT_PT_shaderverse_rarity"
@@ -220,12 +277,15 @@ class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
         # layout.prop(context.object.shaderverse, 'string_field')
         #NOTE: for more layout things see the types.UILayout in the documentation
         
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
         
-        row = layout.row()
+        row = col.row()
         row.template_list("MY_UL_List", "The_List", this_context.shaderverse,
                           "dependency_list", this_context.shaderverse, "dependency_list_index")
 
-        row = layout.row()
+        row = col.row()
         row.operator('shaderverse_dependency_list.new_item', text='NEW')
         row.operator('shaderverse_dependency_list.delete_item', text='REMOVE')
         row.operator('shaderverse_dependency_list.move_item', text='UP').direction = 'UP'
@@ -234,7 +294,7 @@ class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
         if this_context.shaderverse.dependency_list_index >= 0 and this_context.shaderverse.dependency_list:
             item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
 
-            row = layout.row()
+            row = col.row()
             row.prop(item, "dependency")
             # row.prop(item, "random_prop")
 
@@ -327,7 +387,7 @@ class NODE_PT_node_tree_interface_inputs(ShaderverseNodeTreeInterfacePanel, bpy.
 class OBJECT_OT_shaderverse_generate(bpy.types.Operator):
     """Generate new metadata and NFT preview"""
     bl_idname = "shaderverse.generate"
-    bl_label = "Generate NFT"
+    bl_label = "Generate NFT Preview"
     bl_options = {'REGISTER', 'UNDO'}
 
     def generate_random_range(self, start, stop, precision):
@@ -483,7 +543,7 @@ classes = [
     OBJECT_PT_shaderverse,
     OBJECT_PT_shaderverse_rarity,
     OBJECT_PT_shaderverse_dependency_list,
-
+    OBJECT_PT_shaderverse_rendering,
     OBJECT_PG_shaderverse,
     MY_UL_List,
     LIST_OT_NewItem,
