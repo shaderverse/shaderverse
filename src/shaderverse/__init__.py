@@ -150,82 +150,25 @@ class OBJECT_PT_shaderverse(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "object"
+    bl_context = "modifier"
 
 
     def draw(self, context):
-        pass
-        # You can set the property values that should be used when the user
-        # presses the button in the UI.
+        layout = self.layout
+        row = layout.row()
+
+        shaderverse_generate = OBJECT_OT_shaderverse_generate
+
+        row.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
 
 
-        #add a new row with multiple elements in a column
-        # subrow = layout.row(align=True)
-        # #add a toggle
-        # subrow.prop(context.object.shaderverse, 'bool_toggle')
-        # #add an int slider
-        # subrow.prop(context.object.shaderverse, 'int_slider')
-        # #add a custom text field in the usual layout
-        # layout.prop(context.object.shaderverse, 'string_field')
-        #NOTE: for more layout things see the types.UILayout in the documentation
-    
-        
-        
-        # mat = context.material
-        # ob = context.object
-        # slot = context.material_slot
-        # space = context.space_data
-        # split = layout.split()
-        
-        # if ob:
-        #     is_sortable = len(ob.material_slots) > 1
-        #     rows = 3
-        #     if (is_sortable):
-        #         rows = 4
 
-        #     row = layout.row()
-
-        #     row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=rows)
-
-        #     col = row.column(align=True)
-        #     col.operator("object.material_slot_add", icon='ADD', text="")
-        #     col.operator("object.material_slot_remove", icon='REMOVE', text="")
-        #     col.separator()
-        #     col.menu("MATERIAL_MT_context_menu", icon='DOWNARROW_HLT', text="")
-
-        #     if is_sortable:
-        #         col.separator()
-
-        #         col.operator("object.material_slot_move", icon='TRIA_UP', text="").direction = 'UP'
-        #         col.operator("object.material_slot_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
-
-        #     if ob.mode == 'EDIT':
-        #         row = layout.row(align=True)
-        #         row.operator("object.material_slot_assign", text="Assign")
-        #         row.operator("object.material_slot_select", text="Select")
-        #         row.operator("object.material_slot_deselect", text="Deselect")
-
-        # row = layout.row()
-
-        # if ob:
-        #     row.template_ID(ob, "active_material", new="material.new")
-
-        #     if slot:
-        #         icon_link = 'MESH_DATA' if slot.link == 'DATA' else 'OBJECT_DATA'
-        #         row.prop(slot, "link", text="", icon=icon_link, icon_only=True)
-
-        # elif mat:
-        #     split.template_ID(space, "pin_id")
-        #     split.separator()
-
-
-class OBJECT_PT_shaderverse_weights(bpy.types.Panel):
+class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
     bl_parent_id = "OBJECT_PT_shaderverse"
-    bl_label = "Weight"
+    bl_label = "Rarity Settings"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "object"
 
 
     def draw(self, context):
@@ -252,12 +195,12 @@ class OBJECT_PT_shaderverse_weights(bpy.types.Panel):
         
 
 class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
-    bl_parent_id = "OBJECT_PT_shaderverse"
+    bl_parent_id = "OBJECT_PT_shaderverse_rarity"
     bl_label = "Limit to these objects"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "object"
+    bl_options = {'DEFAULT_CLOSED'}
 
 
     def draw(self, context):
@@ -524,7 +467,6 @@ class OBJECT_PT_shaderverse_generate(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        obj = context.object
 
         row = layout.row()
 
@@ -539,7 +481,7 @@ class OBJECT_PT_shaderverse_generate(bpy.types.Panel):
 classes = [
     DependencyListItem,
     OBJECT_PT_shaderverse,
-    OBJECT_PT_shaderverse_weights,
+    OBJECT_PT_shaderverse_rarity,
     OBJECT_PT_shaderverse_dependency_list,
 
     OBJECT_PG_shaderverse,
@@ -547,8 +489,7 @@ classes = [
     LIST_OT_NewItem,
     LIST_OT_DeleteItem,
     LIST_OT_MoveItem,
-    OBJECT_OT_shaderverse_generate,
-    OBJECT_PT_shaderverse_generate
+    OBJECT_OT_shaderverse_generate
 ]
 
 
