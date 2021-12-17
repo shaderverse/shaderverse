@@ -21,13 +21,8 @@ bl_info = {
 
 custom_icons = None
 
-class DependencyListItem(bpy.types.PropertyGroup):
+class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
-
-    # name: bpy.props.StringProperty(
-    #        name="Name",
-    #        description="A name for this item",
-    #        default="Untitled")
 
     dependency: bpy.props.PointerProperty(
         name="Object",
@@ -35,19 +30,13 @@ class DependencyListItem(bpy.types.PropertyGroup):
         description="Only make this object available for selection if one of the objects in this list have been selected"
     )
 
-    # random_prop: bpy.props.StringProperty(
-    #        name="Any other property you want",
-    #        description="",
-    #        default="")
 
-
-class MY_UL_List(bpy.types.UIList):
-    """Demo UIList."""
+class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
+    """Dependency UI List"""
 
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
 
-        # We could write some code to decide which icon to use here...
         custom_icon = 'OBJECT_DATAMODE'
 
         # Make sure your code supports all 3 layout types
@@ -60,10 +49,10 @@ class MY_UL_List(bpy.types.UIList):
             layout.label(text="", icon = custom_icon)
 
 
-class LIST_OT_NewItem(bpy.types.Operator):
+class SHADERVERSE_OT_dependency_list_new_item(bpy.types.Operator):
     """Add a new item to the list."""
 
-    bl_idname = "shaderverse_dependency_list.new_item"
+    bl_idname = "shaderverse.dependency_list_new_item"
     bl_label = "Add a new item"
 
     def execute(self, context):
@@ -72,10 +61,10 @@ class LIST_OT_NewItem(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class LIST_OT_DeleteItem(bpy.types.Operator):
+class SHADERVERSE_OT_dependency_list_delete_item(bpy.types.Operator):
     """Delete the selected item from the list."""
 
-    bl_idname = "shaderverse_dependency_list.delete_item"
+    bl_idname = "shaderverse.dependency_list_delete_item"
     bl_label = "Deletes an item"
 
     @classmethod
@@ -92,10 +81,10 @@ class LIST_OT_DeleteItem(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class LIST_OT_MoveItem(bpy.types.Operator):
+class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
     """Move an item in the list."""
 
-    bl_idname = "shaderverse_dependency_list.move_item"
+    bl_idname = "shaderverse.dependency_list_move_item"
     bl_label = "Move an item in the list"
 
     direction: bpy.props.EnumProperty(items=(('UP', 'Up', ""),
@@ -127,15 +116,13 @@ class LIST_OT_MoveItem(bpy.types.Operator):
 
 
 
-class OBJECT_PG_shaderverse(bpy.types.PropertyGroup):
-    #NOTE: read documentation about 'props' to see them and their keyword arguments
-    #builtin float (variable)property that blender understands
+class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     weight: bpy.props.FloatProperty(name='float value', soft_min=0, soft_max=1)
     render_in_2D: bpy.props.BoolProperty(name='bool toggle', default=True)
     render_in_3D: bpy.props.BoolProperty(name='bool toggle', default=True)
 
 
-    dependency_list: bpy.props.CollectionProperty(type=DependencyListItem)
+    dependency_list: bpy.props.CollectionProperty(type=SHADERVERSE_PG_dependency_list_item)
     
     dependency_list_index: bpy.props.IntProperty(name = "Index for shaderverse.dependency_list", default = 0)
 
@@ -149,7 +136,7 @@ class OBJECT_PG_shaderverse(bpy.types.PropertyGroup):
     
 
 
-class OBJECT_PT_shaderverse(bpy.types.Panel):
+class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_label = ""
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -171,7 +158,7 @@ class OBJECT_PT_shaderverse(bpy.types.Panel):
         # row = center_column.row()
         layout.label(text="Shaderverse")
 
-        shaderverse_generate = OBJECT_OT_shaderverse_generate
+        shaderverse_generate = SHADERVERSE_OT_generate
 
         layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
 
@@ -182,7 +169,7 @@ class OBJECT_PT_shaderverse(bpy.types.Panel):
 
 
 class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
-    bl_parent_id = "OBJECT_PT_shaderverse"
+    bl_parent_id = "SHADERVERSE_PT_main"
     bl_label = "Rarity Settings"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -215,9 +202,18 @@ class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
         #NOTE: for more layout things see the types.UILayout in the documentation
         
 
-class OBJECT_PT_shaderverse_rendering(bpy.types.Panel):
-    bl_parent_id = "OBJECT_PT_shaderverse"
-    bl_label = "Rendering Settings"
+        #     if slot:
+        #         icon_link = 'MESH_DATA' if slot.link == 'DATA' else 'OBJECT_DATA'
+        #         row.prop(slot, "link", text="", icon=icon_link, icon_only=True)
+
+        # elif mat:
+        #     split.template_ID(space, "pin_id")
+        #     split.separator()
+
+
+class SHADERVERSE_PT_rendering(bpy.types.Panel):
+    bl_parent_id = "SHADERVERSE_PT_main"
+    bl_label =  "Rendering Settings"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool"
@@ -252,8 +248,8 @@ class OBJECT_PT_shaderverse_rendering(bpy.types.Panel):
         
                
 
-class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
-    bl_parent_id = "OBJECT_PT_shaderverse_rarity"
+class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
+    bl_parent_id = "SHADERVERSE_PT_main"
     bl_label = "Limit to these objects"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -282,15 +278,17 @@ class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
         col = split.column()
         col = split.column()
         
+        
+
         row = col.row()
-        row.template_list("MY_UL_List", "The_List", this_context.shaderverse,
+        row.template_list("SHADERVERSE_UL_dependency_list", "The_List", this_context.shaderverse,
                           "dependency_list", this_context.shaderverse, "dependency_list_index")
 
         row = col.row()
-        row.operator('shaderverse_dependency_list.new_item', text='NEW')
-        row.operator('shaderverse_dependency_list.delete_item', text='REMOVE')
-        row.operator('shaderverse_dependency_list.move_item', text='UP').direction = 'UP'
-        row.operator('shaderverse_dependency_list.move_item', text='DOWN').direction = 'DOWN'
+        row.operator('shaderverse.dependency_list_new_item', text='NEW')
+        row.operator('shaderverse.dependency_list_delete_item', text='REMOVE')
+        row.operator('shaderverse.dependency_list_move_item', text='UP').direction = 'UP'
+        row.operator('shaderverse.dependency_list_move_item', text='DOWN').direction = 'DOWN'
 
         if this_context.shaderverse.dependency_list_index >= 0 and this_context.shaderverse.dependency_list:
             item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
@@ -298,7 +296,6 @@ class OBJECT_PT_shaderverse_dependency_list(bpy.types.Panel):
             row = col.row()
             row.prop(item, "dependency")
             # row.prop(item, "random_prop")
-
 
 class ShaderverseNodeTreeInterfacePanel:
     def draw_attributes (self, context, in_out, sockets_propname, active_socket_propname):
@@ -385,7 +382,7 @@ class NODE_PT_node_tree_interface_inputs(ShaderverseNodeTreeInterfacePanel, bpy.
 
 
 
-class OBJECT_OT_shaderverse_generate(bpy.types.Operator):
+class SHADERVERSE_OT_generate(bpy.types.Operator):
     """Generate new metadata and NFT preview"""
     bl_idname = "shaderverse.generate"
     bl_label = "Generate NFT Preview"
@@ -518,7 +515,7 @@ class OBJECT_OT_shaderverse_generate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OBJECT_PT_shaderverse_generate(bpy.types.Panel):
+class SHADERVERSE_PT_generate(bpy.types.Panel):
     """Shaderverse generator button panel"""
     bl_label = "Shaderverse"
     bl_space_type = 'PROPERTIES'
@@ -531,26 +528,24 @@ class OBJECT_PT_shaderverse_generate(bpy.types.Panel):
 
         row = layout.row()
 
-        # here is your operator
-        shaderverse_generate = OBJECT_OT_shaderverse_generate
+        shaderverse_generate = SHADERVERSE_OT_generate
 
-        row.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
+        row.operator(shaderverse_generate.bl_idname, text=shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
 
-        
 
 
 classes = [
-    DependencyListItem,
-    OBJECT_PT_shaderverse,
-    OBJECT_PT_shaderverse_rarity,
-    OBJECT_PT_shaderverse_dependency_list,
-    OBJECT_PT_shaderverse_rendering,
-    OBJECT_PG_shaderverse,
-    MY_UL_List,
-    LIST_OT_NewItem,
-    LIST_OT_DeleteItem,
-    LIST_OT_MoveItem,
-    OBJECT_OT_shaderverse_generate
+    SHADERVERSE_PG_dependency_list_item,
+    SHADERVERSE_PT_main,
+    SHADERVERSE_PT_rendering,
+    SHADERVERSE_PT_dependency_list,
+    SHADERVERSE_PG_main,
+    SHADERVERSE_UL_dependency_list,
+    SHADERVERSE_OT_dependency_list_new_item,
+    SHADERVERSE_OT_dependency_list_delete_item,
+    SHADERVERSE_OT_dependency_list_move_item,
+    SHADERVERSE_OT_generate,
+    SHADERVERSE_PT_generate,
 ]
 
 
@@ -567,7 +562,7 @@ def register():
         bpy.utils.register_class(this_class)
 
     #adds the property group class to the object context (instantiates it)
-    bpy.types.Object.shaderverse = bpy.props.PointerProperty(type=OBJECT_PG_shaderverse)
+    bpy.types.Object.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_main)
 
 
 #same as register but backwards, deleting references
