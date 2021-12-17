@@ -41,7 +41,8 @@ class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.dependency.name, icon = custom_icon)
+            text = item.dependency.name if hasattr(item.dependency, "name") else "Select an Object"
+            layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -117,6 +118,9 @@ class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
 
 class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     weight: bpy.props.FloatProperty(name='float value', soft_min=0, soft_max=1)
+    render_in_2D: bpy.props.BoolProperty(name='bool toggle', default=True)
+    render_in_3D: bpy.props.BoolProperty(name='bool toggle', default=True)
+
 
     dependency_list: bpy.props.CollectionProperty(type=SHADERVERSE_PG_dependency_list_item)
     
@@ -133,18 +137,59 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
 
 
 class SHADERVERSE_PT_main(bpy.types.Panel):
-    bl_label = "Shaderverse"
+    bl_label = ""
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "object"
+    bl_context = "modifier"
 
+
+    def draw_header(self, context):
+        layout = self.layout
+        # left_padding_percent = .1
+        # right_padding_percent = 1 - left_padding_percent
+
+        # split = layout.split(factor=left_padding_percent)
+        # left_column = split.column()
+        # center_split = split.split(factor=right_padding_percent)
+        # center_column = center_split.column()
+        # right_column = center_split.column()
+
+        # row = center_column.row()
+        layout.label(text="Shaderverse")
+
+        shaderverse_generate = SHADERVERSE_OT_generate
+
+        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
 
     def draw(self, context):
         pass
+
+
+
+
+class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
+    bl_parent_id = "SHADERVERSE_PT_main"
+    bl_label = "Rarity Settings"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_category = "Tool" 
+
+
+    def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
+        layout = self.layout 
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
+        
+        row = col.row()
 
+        this_context = context.object
+        #add a label to the UI
+        # layout.label(text="Weighted chance of choosing this attribute")
+        row.prop(this_context.shaderverse, 'weight', text="Weight Amount", slider=True)
 
         #add a new row with multiple elements in a column
         # subrow = layout.row(align=True)
@@ -155,47 +200,7 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
         # #add a custom text field in the usual layout
         # layout.prop(context.object.shaderverse, 'string_field')
         #NOTE: for more layout things see the types.UILayout in the documentation
-    
         
-        
-        # mat = context.material
-        # ob = context.object
-        # slot = context.material_slot
-        # space = context.space_data
-        # split = layout.split()
-        
-        # if ob:
-        #     is_sortable = len(ob.material_slots) > 1
-        #     rows = 3
-        #     if (is_sortable):
-        #         rows = 4
-
-        #     row = layout.row()
-
-        #     row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=rows)
-
-        #     col = row.column(align=True)
-        #     col.operator("object.material_slot_add", icon='ADD', text="")
-        #     col.operator("object.material_slot_remove", icon='REMOVE', text="")
-        #     col.separator()
-        #     col.menu("MATERIAL_MT_context_menu", icon='DOWNARROW_HLT', text="")
-
-        #     if is_sortable:
-        #         col.separator()
-
-        #         col.operator("object.material_slot_move", icon='TRIA_UP', text="").direction = 'UP'
-        #         col.operator("object.material_slot_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
-
-        #     if ob.mode == 'EDIT':
-        #         row = layout.row(align=True)
-        #         row.operator("object.material_slot_assign", text="Assign")
-        #         row.operator("object.material_slot_select", text="Select")
-        #         row.operator("object.material_slot_deselect", text="Deselect")
-
-        # row = layout.row()
-
-        # if ob:
-        #     row.template_ID(ob, "active_material", new="material.new")
 
         #     if slot:
         #         icon_link = 'MESH_DATA' if slot.link == 'DATA' else 'OBJECT_DATA'
@@ -206,25 +211,30 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
         #     split.separator()
 
 
-class SHADERVERSE_PT_weight(bpy.types.Panel):
+class SHADERVERSE_PT_rendering(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
-    bl_label = "Weight"
+    bl_label =  "Rendering Settings"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    bl_category = "Tool" 
-    bl_context = "object"
+    bl_category = "Tool"
+
+ 
 
 
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         layout = self.layout 
-
-        subrow = layout.row(align=True)
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
+        box = col.box()
         this_context = context.object
         #add a label to the UI
         # layout.label(text="Weighted chance of choosing this attribute")
-        subrow.prop(this_context.shaderverse, 'weight', text="Weight Amount")
+        box.prop(this_context.shaderverse, 'render_in_2D', text="Include in 2D Renders")
+        # subrow2 = layout.row()
+        box.prop(this_context.shaderverse, 'render_in_3D', text="Include in 3D Renders")
 
         #add a new row with multiple elements in a column
         # subrow = layout.row(align=True)
@@ -236,7 +246,7 @@ class SHADERVERSE_PT_weight(bpy.types.Panel):
         # layout.prop(context.object.shaderverse, 'string_field')
         #NOTE: for more layout things see the types.UILayout in the documentation
         
-        
+               
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
@@ -244,7 +254,7 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "object"
+    bl_options = {'DEFAULT_CLOSED'}
 
 
     def draw(self, context):
@@ -264,12 +274,17 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
         # layout.prop(context.object.shaderverse, 'string_field')
         #NOTE: for more layout things see the types.UILayout in the documentation
         
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
         
-        row = layout.row()
+        
+
+        row = col.row()
         row.template_list("SHADERVERSE_UL_dependency_list", "The_List", this_context.shaderverse,
                           "dependency_list", this_context.shaderverse, "dependency_list_index")
 
-        row = layout.row()
+        row = col.row()
         row.operator('shaderverse.dependency_list_new_item', text='NEW')
         row.operator('shaderverse.dependency_list_delete_item', text='REMOVE')
         row.operator('shaderverse.dependency_list_move_item', text='UP').direction = 'UP'
@@ -278,10 +293,9 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
         if this_context.shaderverse.dependency_list_index >= 0 and this_context.shaderverse.dependency_list:
             item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
 
-            row = layout.row()
+            row = col.row()
             row.prop(item, "dependency")
             # row.prop(item, "random_prop")
-
 
 class ShaderverseNodeTreeInterfacePanel:
     def draw_attributes (self, context, in_out, sockets_propname, active_socket_propname):
@@ -371,7 +385,7 @@ class NODE_PT_node_tree_interface_inputs(ShaderverseNodeTreeInterfacePanel, bpy.
 class SHADERVERSE_OT_generate(bpy.types.Operator):
     """Generate new metadata and NFT preview"""
     bl_idname = "shaderverse.generate"
-    bl_label = "Generate NFT"
+    bl_label = "Generate NFT Preview"
     bl_options = {'REGISTER', 'UNDO'}
 
     def generate_random_range(self, start, stop, precision):
@@ -511,7 +525,6 @@ class SHADERVERSE_PT_generate(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        obj = context.object
 
         row = layout.row()
 
@@ -524,7 +537,7 @@ class SHADERVERSE_PT_generate(bpy.types.Panel):
 classes = [
     SHADERVERSE_PG_dependency_list_item,
     SHADERVERSE_PT_main,
-    SHADERVERSE_PT_weight,
+    SHADERVERSE_PT_rendering,
     SHADERVERSE_PT_dependency_list,
     SHADERVERSE_PG_main,
     SHADERVERSE_UL_dependency_list,
