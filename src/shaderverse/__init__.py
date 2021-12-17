@@ -52,7 +52,8 @@ class MY_UL_List(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.dependency.name, icon = custom_icon)
+            text = item.dependency.name if hasattr(item.dependency, "name") else "Select an Object"
+            layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
