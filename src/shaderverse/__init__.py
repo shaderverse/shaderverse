@@ -8,7 +8,7 @@ bl_info = {
     "name": "Shaderverse",
     "description": "Create parametricly driven NFTs using Geometry Nodes",
     "author": "Michael Gold",
-    "version": (0, 0, 1),
+    "version": (1, 0, 1),
     "blender": (3, 0, 0),
     "location": "Object > Modifier",
     "warning": "", # used for warning icon and text in addons panel
