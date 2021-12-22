@@ -8,7 +8,7 @@ bl_info = {
     "name": "Shaderverse",
     "description": "Create parametricly driven NFTs using Geometry Nodes",
     "author": "Michael Gold",
-    "version": (1, 0, 1),
+    "version": (1, 0, 2),
     "blender": (3, 0, 0),
     "location": "Object > Modifier",
     "warning": "", # used for warning icon and text in addons panel
@@ -168,7 +168,7 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
 
 
 
-class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
+class SHADERVERSE_PT_rarity(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
     bl_label = "Rarity Settings"
     bl_space_type = 'PROPERTIES'
@@ -191,24 +191,6 @@ class OBJECT_PT_shaderverse_rarity(bpy.types.Panel):
         # layout.label(text="Weighted chance of choosing this attribute")
         row.prop(this_context.shaderverse, 'weight', text="Weight Amount", slider=True)
 
-        #add a new row with multiple elements in a column
-        # subrow = layout.row(align=True)
-        # #add a toggle
-        # subrow.prop(context.object.shaderverse, 'bool_toggle')
-        # #add an int slider
-        # subrow.prop(context.object.shaderverse, 'int_slider')
-        # #add a custom text field in the usual layout
-        # layout.prop(context.object.shaderverse, 'string_field')
-        #NOTE: for more layout things see the types.UILayout in the documentation
-        
-
-        #     if slot:
-        #         icon_link = 'MESH_DATA' if slot.link == 'DATA' else 'OBJECT_DATA'
-        #         row.prop(slot, "link", text="", icon=icon_link, icon_only=True)
-
-        # elif mat:
-        #     split.template_ID(space, "pin_id")
-        #     split.separator()
 
 
 class SHADERVERSE_PT_rendering(bpy.types.Panel):
@@ -236,16 +218,6 @@ class SHADERVERSE_PT_rendering(bpy.types.Panel):
         # subrow2 = layout.row()
         box.prop(this_context.shaderverse, 'render_in_3D', text="Include in 3D Renders")
 
-        #add a new row with multiple elements in a column
-        # subrow = layout.row(align=True)
-        # #add a toggle
-        # subrow.prop(context.object.shaderverse, 'bool_toggle')
-        # #add an int slider
-        # subrow.prop(context.object.shaderverse, 'int_slider')
-        # #add a custom text field in the usual layout
-        # layout.prop(context.object.shaderverse, 'string_field')
-        #NOTE: for more layout things see the types.UILayout in the documentation
-        
                
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
@@ -263,16 +235,6 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
         layout = self.layout 
         this_context = context.object
 
-
-        #add a new row with multiple elements in a column
-        # subrow = layout.row(align=True)
-        # #add a toggle
-        # subrow.prop(context.object.shaderverse, 'bool_toggle')
-        # #add an int slider
-        # subrow.prop(context.object.shaderverse, 'int_slider')
-        # #add a custom text field in the usual layout
-        # layout.prop(context.object.shaderverse, 'string_field')
-        #NOTE: for more layout things see the types.UILayout in the documentation
         
         split = layout.split(factor=0.1)
         col = split.column()
@@ -297,89 +259,6 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
             row.prop(item, "dependency")
             # row.prop(item, "random_prop")
 
-class ShaderverseNodeTreeInterfacePanel:
-    def draw_attributes (self, context, in_out, sockets_propname, active_socket_propname):
-        layout = self.layout
-
-        snode = context.space_data
-        tree = snode.edit_tree
-        sockets = getattr(tree, sockets_propname)
-        active_socket_index = getattr(tree, active_socket_propname)
-        active_socket = sockets[active_socket_index] if active_socket_index >= 0 else None
-
-        split = layout.row()
-
-        split.template_list("NODE_UL_interface_sockets", in_out, tree, sockets_propname, tree, active_socket_propname)
-
-        ops_col = split.column()
-
-        add_remove_col = ops_col.column(align=True)
-        props = add_remove_col.operator("node.tree_socket_add", icon='ADD', text="")
-        props.in_out = in_out
-        props = add_remove_col.operator("node.tree_socket_remove", icon='REMOVE', text="")
-        props.in_out = in_out
-
-        ops_col.separator()
-
-        bpy.data.objects["Cube"].modifiers["GeometryNodes"]["Input_3"]
-
-        # up_down_col = ops_col.column(align=True)
-        # props = up_down_col.operator("node.tree_socket_move", icon='TRIA_UP', text="")
-        # props.in_out = in_out
-        # props.direction = 'UP'
-        # props = up_down_col.operator("node.tree_socket_move", icon='TRIA_DOWN', text="")
-        # props.in_out = in_out
-        # props.direction = 'DOWN'
-
-        if active_socket is not None:
-            # Mimicking property split.
-            layout.use_property_split = False
-            layout.use_property_decorate = False
-            layout_row = layout.row(align=True)
-            layout_split = layout_row.split(factor=0.4, align=True)
-
-            label_column = layout_split.column(align=True)
-            label_column.alignment = 'RIGHT'
-            # Menu to change the socket type.
-            label_column.label(text="Type")
-
-            property_row = layout_split.row(align=True)
-            props = property_row.operator_menu_enum(
-                "node.tree_socket_change_type",
-                "socket_type",
-                text=active_socket.bl_label if active_socket.bl_label else active_socket.bl_idname
-                )
-            props.in_out = in_out
-
-            layout.use_property_split = True
-            layout.use_property_decorate = False
-
-            layout.prop(active_socket, "name")
-            # Display descriptions only for Geometry Nodes, since it's only used in the modifier panel.
-            if tree.type == 'GEOMETRY':
-                layout.prop(active_socket, "description")
-                field_socket_prefixes = {
-                    "NodeSocketInt", "NodeSocketColor", "NodeSocketVector", "NodeSocketBool", "NodeSocketFloat"}
-                is_field_type = any(active_socket.bl_socket_idname.startswith(prefix) for prefix in field_socket_prefixes)
-                if in_out == "OUT" and is_field_type:
-                    layout.prop(active_socket, "attribute_domain")
-            active_socket.draw(context, layout)
-
-
-class NODE_PT_node_tree_interface_inputs(ShaderverseNodeTreeInterfacePanel, bpy.types.Panel):
-    bl_space_type = 'NODE_EDITOR'
-    bl_region_type = 'UI'
-    bl_category = "Group"
-    bl_label = "Inputs"
-
-    @classmethod
-    def poll(cls, context):
-        snode = context.space_data
-        return snode.edit_tree is not None
-
-    def draw(self, context):
-        self.draw_socket_list(context, "IN", "inputs", "active_input")
-
 
 
 class SHADERVERSE_OT_generate(bpy.types.Operator):
@@ -393,11 +272,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         stop = round(stop / precision)
         generated_int = random.randrange(start, stop)
         return generated_int * precision
-
-    # mesh = bpy.data.meshes['Plane']
-
-    # modifier = bpy.context.object.modifiers["GeometryNodes"]
-    # node_group = modifier.node_group
 
 
     all_objects =  None
@@ -422,8 +296,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 
                     if node_group.type == "GEOMETRY":
                         node_object = {
-                            "mesh_name": object_name,
-                            "mesh_ref": object_ref,
+                            "object_name": object_name,
+                            "object_ref": object_ref,
                             "modifier_name": modifier_name,
                             "modifier_ref": modifier_ref, 
                         }
@@ -507,7 +381,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
         for node_object in self.geometry_node_objects:
             self.generate_metadata(node_object=node_object)
-            mesh_name = node_object["mesh_name"]
+            object_name = node_object["object_name"]
+            object_ref = bpy.data.objects[object_name]
+            mesh_name = object_ref.data.name
             mesh = bpy.data.meshes[mesh_name]
             mesh.update()
 
@@ -515,28 +391,26 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SHADERVERSE_PT_generate(bpy.types.Panel):
-    """Shaderverse generator button panel"""
-    bl_label = "Shaderverse"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_category = "Tool" 
+# class SHADERVERSE_PT_generate(bpy.types.Panel):
+#     """Shaderverse generator button panel"""
+#     bl_label = "Shaderverse"
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_category = "Tool" 
 
-    def draw(self, context):
-        layout = self.layout
+#     def draw(self, context):
+#         layout = self.layout
+#         row = layout.row()
 
+#         shaderverse_generate = SHADERVERSE_OT_generate
 
-        row = layout.row()
-
-        shaderverse_generate = SHADERVERSE_OT_generate
-
-        row.operator(shaderverse_generate.bl_idname, text=shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
-
+#         row.operator(shaderverse_generate.bl_idname, text=shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
 
 
 classes = [
     SHADERVERSE_PG_dependency_list_item,
     SHADERVERSE_PT_main,
+    SHADERVERSE_PT_rarity,
     SHADERVERSE_PT_rendering,
     SHADERVERSE_PT_dependency_list,
     SHADERVERSE_PG_main,
@@ -544,8 +418,7 @@ classes = [
     SHADERVERSE_OT_dependency_list_new_item,
     SHADERVERSE_OT_dependency_list_delete_item,
     SHADERVERSE_OT_dependency_list_move_item,
-    SHADERVERSE_OT_generate,
-    SHADERVERSE_PT_generate,
+    SHADERVERSE_OT_generate
 ]
 
 
