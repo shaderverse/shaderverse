@@ -267,7 +267,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     bl_label = "Generate NFT Preview"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def generate_random_range(self, start, stop, precision):
+    def generate_random_range(self, item_ref, precision):
+        start = item_ref.min_value
+        top = item_ref.max_value
         start = round(start / precision)
         stop = round(stop / precision)
         generated_int = random.randrange(start, stop)
@@ -339,11 +341,14 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         
             
             if item_type == "VALUE":
-                item_min = item_ref.min_value
-                item_max = item_ref.max_value
                 precision = 0.01
-                generated_value = self.generate_random_range(start=item_min, stop=item_max, precision=precision)
-                # print("{} = {}".format(item_name, generated_value))
+                generated_value = self.generate_random_range(item_ref=item_ref, precision=precision)
+                modifier[item_input_id] = generated_value
+                node_group_attributes["attributes"][item_name] = generated_value
+
+            if item_type == "INT":
+                precision = 1
+                generated_value = self.generate_random_range(item_ref=item_ref, precision=precision)
                 modifier[item_input_id] = generated_value
                 node_group_attributes["attributes"][item_name] = generated_value
                 
