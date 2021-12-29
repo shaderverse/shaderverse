@@ -8,7 +8,7 @@ bl_info = {
     "name": "Shaderverse",
     "description": "Create parametricly driven NFTs using Geometry Nodes",
     "author": "Michael Gold",
-    "version": (1, 0, 3),
+    "version": (1, 0, 4),
     "blender": (3, 0, 0),
     "location": "Object > Modifier",
     "warning": "", # used for warning icon and text in addons panel
@@ -269,7 +269,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     def generate_random_range(self, item_ref, precision):
         start = item_ref.min_value
-        top = item_ref.max_value
+        stop = item_ref.max_value
         start = round(start / precision)
         stop = round(stop / precision)
         generated_int = random.randrange(start, stop)
@@ -318,6 +318,21 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             collection_object_weights.append(obj.shaderverse.weight)
         selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
         return bpy.data.objects[selected_object_name]
+
+
+    def select_collection_based_on_object(self, collection):
+        collection_objects = []
+        collection_object_weights = []
+        
+        for child_collection in collection.children:
+            obj = child_collection.objects[0]
+            collection_objects.append({"object_name": obj.name, "collection_name": child_collection.name})
+            collection_object_weights.append(obj.shaderverse.weight)
+        
+        collection_object_names = [d['object_name'] for d in collection_objects]
+        selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
+        selected_collection_name = next(item["collection_name"] for item in collection_objects if item["object_name"] == selected_object_name)
+        return bpy.data.collections[selected_collection_name]
 
 
     def generate_metadata(self, node_object):
@@ -370,6 +385,13 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     selected_object = self.select_object_from_collection(collection=object_collection)
                     modifier[item_input_id] = selected_object
                     node_group_attributes["attributes"][item_name] = selected_object.id_data
+            
+            if item_type == "COLLECTION":
+                object_collection = bpy.data.collections[item_name]
+                if object_collection:
+                    selected_object = self.select_collection_based_on_object(collection=object_collection)
+                    modifier[item_input_id] = selected_object
+                    node_group_attributes["attributes"][item_name] = selected_object.id_data
                 
 
         self.collection.append(node_group_attributes)
@@ -382,9 +404,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         return ob and ob.type == 'MESH'
 
     def execute(self, context):
+        self.geometry_node_objects = []
         self.find_geometry_nodes()
 
         for node_object in self.geometry_node_objects:
+            # node_still_exists = hasattr( node_object["modifier_ref"].node_group, "name")
             self.generate_metadata(node_object=node_object)
             object_name = node_object["object_name"]
             object_ref = bpy.data.objects[object_name]
