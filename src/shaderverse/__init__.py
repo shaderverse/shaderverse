@@ -8,7 +8,7 @@ bl_info = {
     "name": "Shaderverse",
     "description": "Create parametricly driven NFTs using Geometry Nodes",
     "author": "Michael Gold",
-    "version": (1, 0, 4),
+    "version": (1, 0, 5),
     "blender": (3, 0, 0),
     "location": "Object > Modifier",
     "warning": "", # used for warning icon and text in addons panel
@@ -120,6 +120,7 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     weight: bpy.props.FloatProperty(name='float value', soft_min=0, soft_max=1)
     render_in_2D: bpy.props.BoolProperty(name='bool toggle', default=True)
     render_in_3D: bpy.props.BoolProperty(name='bool toggle', default=True)
+    is_parent_node: bpy.props.BoolProperty(name='bool toggle', default=False)
 
 
     dependency_list: bpy.props.CollectionProperty(type=SHADERVERSE_PG_dependency_list_item)
@@ -218,6 +219,26 @@ class SHADERVERSE_PT_rendering(bpy.types.Panel):
         # subrow2 = layout.row()
         box.prop(this_context.shaderverse, 'render_in_3D', text="Include in 3D Renders")
 
+
+
+class SHADERVERSE_PT_metadata(bpy.types.Panel):
+    bl_parent_id = "SHADERVERSE_PT_main"
+    bl_label =  "Metadata Settings"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_category = "Tool"
+
+    def draw(self, context):
+        # You can set the property values that should be used when the user
+        # presses the button in the UI.
+        layout = self.layout 
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
+        box = col.box()
+        this_context = context.object
+
+        box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
                
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
@@ -277,33 +298,38 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 
     all_objects =  None
+    attributes = []
 
     geometry_node_objects = []
 
     def __init__(self):
         self.all_objects = bpy.data.objects.items()
 
-    def find_geometry_nodes(self):
 
-        for obj in self.all_objects:
-            object_name = obj[0]
-            object_ref = obj[1]
-            object_modifiers = object_ref.modifiers.items()
+    def find_geometry_nodes(self, object_ref):
 
-            for modifier in object_modifiers:
-                modifier_name = modifier[0]
-                modifier_ref = modifier[1]
-                if hasattr(modifier_ref, "node_group"):
-                    node_group = modifier_ref.node_group
-                
-                    if node_group.type == "GEOMETRY":
-                        node_object = {
-                            "object_name": object_name,
-                            "object_ref": object_ref,
-                            "modifier_name": modifier_name,
-                            "modifier_ref": modifier_ref, 
-                        }
-                        self.geometry_node_objects.append(node_object)
+        geometry_node_objects = []
+        object_name = object_ref.name
+
+
+        object_modifiers = object_ref.modifiers.items()
+
+        for modifier in object_modifiers:
+            modifier_name = modifier[0]
+            modifier_ref = modifier[1]
+            if hasattr(modifier_ref, "node_group"):
+                node_group = modifier_ref.node_group
+            
+                if node_group.type == "GEOMETRY":
+                    node_object = {
+                        "object_name": object_name,
+                        "object_ref": object_ref,
+                        "modifier_name": modifier_name,
+                        "modifier_ref": modifier_ref, 
+                        "is_parent_node": object_ref.shaderverse.is_parent_node
+                    }
+                    geometry_node_objects.append(node_object)
+        return geometry_node_objects
 
 
 
@@ -312,6 +338,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     def select_object_from_collection(self, collection):
         collection_object_names = []
         collection_object_weights = []
+        active_geometry_node_objects = []
         
         for obj in collection.objects:
             collection_object_names.append(obj.name)
@@ -340,9 +367,12 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         modifier = node_object["modifier_ref"]
         node_group = modifier.node_group
         node_group_name = node_group.name
+        object_name = node_object["object_name"]
+        # object_ref = bpy.data.objects[object_name]
 
         node_group_attributes = { 
             "node_group_name": node_group_name,
+            "object_name": object_name,
             "attributes": {}
         }
 
@@ -402,19 +432,69 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     def poll(cls, context):
         ob = context.active_object
         return ob and ob.type == 'MESH'
+    
+    def set_attributes(self):
+        for node_object in self.active_geometry_node_objects:
+            collection_item = next(item for item in self.collection if item["object_name"] == node_object["object_name"])
+            attributes = collection_item["attributes"]
+            for key in attributes:
+                value = attributes[key].name
+                attribute_data = {
+                    "trait_type": key,
+                    "value": value
+                }
+                self.attributes.append(attribute_data)
+
+
+    def get_active_geometry_node_objects(self, node_group):
+        geometry_nodes_objects = []
+        node_object_ref = node_group["object_ref"]
+        geometry_nodes_objects += self.find_geometry_nodes(node_object_ref)
+
+        collection_item = next(item for item in self.collection if item["object_name"] == node_group["object_name"])
+
+
+        for data_path in collection_item["attributes"].values():
+            if data_path.name in bpy.data.objects:
+                geometry_nodes_objects += self.find_geometry_nodes(data_path)
+                for object_ref in data_path.children:
+                    geometry_nodes_objects += self.find_geometry_nodes(object_ref) 
+            if data_path.name in bpy.data.collections:
+                for child_node in data_path.objects.items():
+                    object_ref = child_node[1]
+                    geometry_nodes_objects += self.find_geometry_nodes(object_ref) 
+        return geometry_nodes_objects
 
     def execute(self, context):
         self.geometry_node_objects = []
-        self.find_geometry_nodes()
+        self.collection = []
+        self.attributes = []
+
+        for obj in self.all_objects:
+            object_name = obj[0]
+            object_ref = obj[1]
+            self.geometry_node_objects += self.find_geometry_nodes(object_ref)
 
         for node_object in self.geometry_node_objects:
-            # node_still_exists = hasattr( node_object["modifier_ref"].node_group, "name")
             self.generate_metadata(node_object=node_object)
             object_name = node_object["object_name"]
             object_ref = bpy.data.objects[object_name]
             mesh_name = object_ref.data.name
             mesh = bpy.data.meshes[mesh_name]
             mesh.update()
+            # 
+        
+        # if object_ref.shaderverse.parent_node save metadata for all children
+        
+        
+        # print(self.collection)
+        self.active_geometry_node_objects = []
+        for node_object in self.geometry_node_objects:
+            if node_object["is_parent_node"]: 
+                self.active_geometry_node_objects += self.get_active_geometry_node_objects(node_object)
+        
+        self.set_attributes()
+        print(self.attributes)
 
 
         return {'FINISHED'}
@@ -441,6 +521,7 @@ classes = [
     SHADERVERSE_PT_main,
     SHADERVERSE_PT_rarity,
     SHADERVERSE_PT_rendering,
+    SHADERVERSE_PT_metadata,
     SHADERVERSE_PT_dependency_list,
     SHADERVERSE_PG_main,
     SHADERVERSE_UL_dependency_list,
