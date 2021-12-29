@@ -2,6 +2,7 @@ import bpy
 import bpy.utils.previews
 import os
 import random
+import json
 
 
 bl_info = {
@@ -135,7 +136,9 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     #builting string (variable)property
     string_field: bpy.props.StringProperty(name='string field')
     
-
+class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
+    generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
+    
 
 class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_label = ""
@@ -239,7 +242,32 @@ class SHADERVERSE_PT_metadata(bpy.types.Panel):
         this_context = context.object
 
         box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
-               
+
+class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
+    bl_parent_id = "SHADERVERSE_PT_main"
+    bl_label =  "Generated Metadata"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_category = "Tool"
+
+    def draw(self, context):
+        # You can set the property values that should be used when the user
+        # presses the button in the UI.
+        layout = self.layout 
+        split = layout.split(factor=0.1)
+        col = split.column()
+        col = split.column()
+        box = col.box()
+
+        # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
+        if hasattr(bpy.types.Scene, "shaderverse"):
+            generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+            for attribute in generated_metadata:
+                row = box.row()
+                col1 = row.column()
+                col2 = row.column()
+                col1.label(text="trait_type: {}".format(attribute["trait_type"]))
+                col2.label(text="value: {}".format(attribute["value"]))        
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
@@ -444,7 +472,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     "value": value
                 }
                 self.attributes.append(attribute_data)
-
+        bpy.context.scene.shaderverse.generated_metadata = json.dumps(self.attributes)
 
     def get_active_geometry_node_objects(self, node_group):
         geometry_nodes_objects = []
@@ -494,6 +522,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 self.active_geometry_node_objects += self.get_active_geometry_node_objects(node_object)
         
         self.set_attributes()
+
         print(self.attributes)
 
 
@@ -521,8 +550,10 @@ classes = [
     SHADERVERSE_PT_main,
     SHADERVERSE_PT_rarity,
     SHADERVERSE_PT_rendering,
+    SHADERVERSE_PG_scene,
     SHADERVERSE_PT_metadata,
-    SHADERVERSE_PT_dependency_list,
+    SHADERVERSE_PT_generated_metadata,
+    # SHADERVERSE_PT_dependency_list,
     SHADERVERSE_PG_main,
     SHADERVERSE_UL_dependency_list,
     SHADERVERSE_OT_dependency_list_new_item,
@@ -546,6 +577,7 @@ def register():
 
     #adds the property group class to the object context (instantiates it)
     bpy.types.Object.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_main)
+    bpy.types.Scene.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_scene)
 
 
 #same as register but backwards, deleting references
@@ -556,6 +588,7 @@ def unregister():
     #NOTE: this is different from its accessor, as that is a read/write only
     #to delete this we have to delete its pointer, just like how we added it
     del bpy.types.Object.shaderverse 
+    del bpy.types.Scene.shaderverse
 
     for this_class in classes:
         bpy.utils.unregister_class(this_class)  
