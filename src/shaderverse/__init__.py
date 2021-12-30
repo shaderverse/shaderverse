@@ -256,6 +256,10 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
         layout = self.layout 
         layout.separator(factor=1.0) 
 
+        shaderverse_generate = SHADERVERSE_OT_generate
+
+        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
+
         # split = layout.split(factor=0.1)
         # col = split.column()
         # col = split.column()
