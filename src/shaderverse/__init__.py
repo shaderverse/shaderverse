@@ -145,7 +145,6 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "modifier"
 
 
     def draw_header(self, context):
@@ -170,6 +169,11 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
         pass
 
 
+class SHADERVERSE_PT_object(SHADERVERSE_PG_main):
+    bl_context = "object"
+
+class SHADERVERSE_PT_modifier(SHADERVERSE_PG_main):
+    bl_context = "modifier"
 
 
 class SHADERVERSE_PT_rarity(bpy.types.Panel):
@@ -487,10 +491,10 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 
 
-    @classmethod 
-    def poll(cls, context):
-        ob = context.active_object
-        return ob and ob.type == 'MESH'
+    # @classmethod 
+    # def poll(cls, context):
+    #     ob = context.active_object
+    #     return ob and ob.type == 'MESH'
     
     def set_attributes(self):
         for node_object in self.active_geometry_node_objects:
@@ -598,6 +602,8 @@ classes = [
     SHADERVERSE_PG_main,
     SHADERVERSE_PG_scene,
     SHADERVERSE_PT_main,
+    # SHADERVERSE_PT_object,
+    # SHADERVERSE_PT_modifier,
     SHADERVERSE_PT_rarity,
     SHADERVERSE_PT_rendering,
     SHADERVERSE_PT_metadata,
