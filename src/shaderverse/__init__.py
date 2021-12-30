@@ -118,7 +118,7 @@ class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
 
 
 class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
-    weight: bpy.props.FloatProperty(name='float value', soft_min=0, soft_max=1)
+    weight: bpy.props.FloatProperty(name='float value', soft_min=0, soft_max=1, default=1.0)
     render_in_2D: bpy.props.BoolProperty(name='bool toggle', default=True)
     render_in_3D: bpy.props.BoolProperty(name='bool toggle', default=True)
     is_parent_node: bpy.props.BoolProperty(name='bool toggle', default=False)
