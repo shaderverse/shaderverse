@@ -244,30 +244,43 @@ class SHADERVERSE_PT_metadata(bpy.types.Panel):
         box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
 
 class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
-    bl_parent_id = "SHADERVERSE_PT_main"
-    bl_label =  "Generated Metadata"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_category = "Tool"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Shaderverse"
+    bl_label = "Generated NFT Metadata"
+    bl_idname = "SHADERVERSE_PT_generated_metadata"
 
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         layout = self.layout 
-        split = layout.split(factor=0.1)
-        col = split.column()
-        col = split.column()
-        box = col.box()
+        layout.separator(factor=1.0) 
+
+        # split = layout.split(factor=0.1)
+        # col = split.column()
+        # col = split.column()
 
         # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
         if hasattr(bpy.types.Scene, "shaderverse"):
             generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
             for attribute in generated_metadata:
-                row = box.row()
-                col1 = row.column()
-                col2 = row.column()
-                col1.label(text="trait_type: {}".format(attribute["trait_type"]))
-                col2.label(text="value: {}".format(attribute["value"]))        
+                row = layout.row()
+                grid_flow = row.grid_flow(columns=2, even_columns=True, row_major=True)
+
+
+                # grid_row = grid_flow.row()
+
+
+                col1 = grid_flow.column()
+                col2 = grid_flow.column()
+
+                col1.label(text="Trait Type".format(attribute["trait_type"]))
+                col1.box().label(text=attribute["trait_type"])
+                col2.label(text="Value")
+                col2.box().label(text=attribute["value"])
+                # layout.separator_spacer()
+
+ 
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
@@ -547,14 +560,14 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 classes = [
     SHADERVERSE_PG_dependency_list_item,
+    SHADERVERSE_PG_main,
+    SHADERVERSE_PG_scene,
     SHADERVERSE_PT_main,
     SHADERVERSE_PT_rarity,
     SHADERVERSE_PT_rendering,
-    SHADERVERSE_PG_scene,
     SHADERVERSE_PT_metadata,
     SHADERVERSE_PT_generated_metadata,
     # SHADERVERSE_PT_dependency_list,
-    SHADERVERSE_PG_main,
     SHADERVERSE_UL_dependency_list,
     SHADERVERSE_OT_dependency_list_new_item,
     SHADERVERSE_OT_dependency_list_delete_item,
