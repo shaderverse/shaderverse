@@ -9,7 +9,7 @@ bl_info = {
     "name": "Shaderverse",
     "description": "Create parametricly driven NFTs using Geometry Nodes",
     "author": "Michael Gold",
-    "version": (1, 0, 5),
+    "version": (1, 0, 6),
     "blender": (3, 0, 0),
     "location": "Object > Modifier",
     "warning": "", # used for warning icon and text in addons panel
@@ -435,8 +435,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             item_type = item_ref.type
             item_input_id = item_ref.identifier 
             parent_attribute_value  = None
+            is_parent_node = node_object["is_parent_node"]
 
-            if (not node_object["is_parent_node"]):
+            if (not is_parent_node):
                 
                 for item in self.collection:
                     if item["is_parent_node"]:
@@ -445,47 +446,47 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                             if item_name == key:
                                 parent_attribute_value = attributes[key]
 
+            is_generator_input = is_parent_node or parent_attribute_value
 
-        
-            
-            if item_type == "VALUE":
-                precision = 0.01
-                generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
-                modifier[item_input_id] = generated_value
-                node_group_attributes["attributes"][item_name] = generated_value
+            if is_generator_input:
 
-            if item_type == "INT":
-                precision = 1
-                generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
-                modifier[item_input_id] = generated_value
-                node_group_attributes["attributes"][item_name] = generated_value
+                if item_type == "VALUE":
+                    precision = 0.01
+                    generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
+                    modifier[item_input_id] = generated_value
+                    node_group_attributes["attributes"][item_name] = generated_value
+
+                if item_type == "INT":
+                    precision = 1
+                    generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
+                    modifier[item_input_id] = generated_value
+                    node_group_attributes["attributes"][item_name] = generated_value
+                    
+                if item_type == "MATERIAL":
+                    # look for a collection with the same name of the material input
+                    material_collection = bpy.data.collections[item_name]
+                    if material_collection:
+                        selected_object = self.select_object_from_collection(collection=material_collection)
+                        selected_material_name = selected_object.material_slots[0].name
+                        selected_material = parent_attribute_value if parent_attribute_value else bpy.data.materials[selected_material_name]
+                        if selected_material:
+                            modifier[item_input_id] = selected_material
+                            node_group_attributes["attributes"][item_name] = selected_material.id_data
+
+                if item_type == "OBJECT":
+                    object_collection = bpy.data.collections[item_name]
+                    if object_collection:
+                        selected_object = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
+                        modifier[item_input_id] = selected_object
+                        node_group_attributes["attributes"][item_name] = selected_object.id_data
                 
-
-            if item_type == "MATERIAL":
-                # look for a collection with the same name of the material input
-                material_collection = bpy.data.collections[item_name]
-                if material_collection:
-                    selected_object = self.select_object_from_collection(collection=material_collection)
-                    selected_material_name = selected_object.material_slots[0].name
-                    selected_material = parent_attribute_value if parent_attribute_value else bpy.data.materials[selected_material_name]
-                    if selected_material:
-                        modifier[item_input_id] = selected_material
-                        node_group_attributes["attributes"][item_name] = selected_material.id_data
-
-            if item_type == "OBJECT":
-                object_collection = bpy.data.collections[item_name]
-                if object_collection:
-                    selected_object = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
-                    modifier[item_input_id] = selected_object
-                    node_group_attributes["attributes"][item_name] = selected_object.id_data
-            
-            if item_type == "COLLECTION":
-                object_collection = bpy.data.collections[item_name]
-                if object_collection:
-                    selected_object = parent_attribute_value if parent_attribute_value else self.select_collection_based_on_object(collection=object_collection)
-                    modifier[item_input_id] = selected_object
-                    node_group_attributes["attributes"][item_name] = selected_object.id_data
-                
+                if item_type == "COLLECTION":
+                    object_collection = bpy.data.collections[item_name]
+                    if object_collection:
+                        selected_object = parent_attribute_value if parent_attribute_value else self.select_collection_based_on_object(collection=object_collection)
+                        modifier[item_input_id] = selected_object
+                        node_group_attributes["attributes"][item_name] = selected_object.id_data
+                        
         if not parent_attribute_value:
             self.collection.append(node_group_attributes)
 
