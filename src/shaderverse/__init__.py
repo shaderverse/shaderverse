@@ -496,6 +496,16 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     # def poll(cls, context):
     #     ob = context.active_object
     #     return ob and ob.type == 'MESH'
+
+    def format_value(self, item):
+        if hasattr(item, "name"):
+            return item.name
+        if type(item) is float:
+            return "{:.2f}".format(item)
+        if type(item) is int:
+            return "{}".format(item)
+        else: 
+            return item
     
     def set_attributes(self):
         for node_object in self.active_geometry_node_objects:
@@ -504,9 +514,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             if collection_item:
                 attributes = collection_item["attributes"]
                 for key in attributes:
-                    print(attributes[key])
-                    is_name = hasattr(attributes[key], "name")
-                    value = attributes[key].name if is_name else "{:.2f}".format(attributes[key])
+                    value = self.format_value(attributes[key])
                     attribute_data = {
                         "trait_type": key,
                         "value": value
