@@ -342,7 +342,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         stop = item_ref.max_value
         start = round(start / precision)
         stop = round(stop / precision)
-        generated_int = random.randrange(start, stop)
+        generated_int = random.randint(start, stop)
         return generated_int * precision
 
 
