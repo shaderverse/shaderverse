@@ -504,7 +504,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             if collection_item:
                 attributes = collection_item["attributes"]
                 for key in attributes:
-                    value = attributes[key].name
+                    print(attributes[key])
+                    is_name = hasattr(attributes[key], "name")
+                    value = attributes[key].name if is_name else "{:.2f}".format(attributes[key])
                     attribute_data = {
                         "trait_type": key,
                         "value": value
@@ -521,16 +523,17 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 
         for data_path in collection_item["attributes"].values():
-            if data_path.name in bpy.data.materials:
-                continue 
-            elif data_path.name in bpy.data.objects:
-                geometry_nodes_objects += self.find_geometry_nodes(data_path)
-                for object_ref in data_path.children:
-                    geometry_nodes_objects += self.find_geometry_nodes(object_ref) 
-            elif data_path.name in bpy.data.collections:
-                for child_node in data_path.objects.items():
-                    object_ref = child_node[1]
-                    geometry_nodes_objects += self.find_geometry_nodes(object_ref)
+            if hasattr(data_path, "name"):
+                if data_path.name in bpy.data.materials:
+                    continue 
+                elif data_path.name in bpy.data.objects:
+                    geometry_nodes_objects += self.find_geometry_nodes(data_path)
+                    for object_ref in data_path.children:
+                        geometry_nodes_objects += self.find_geometry_nodes(object_ref) 
+                elif data_path.name in bpy.data.collections:
+                    for child_node in data_path.objects.items():
+                        object_ref = child_node[1]
+                        geometry_nodes_objects += self.find_geometry_nodes(object_ref)
             
 
         return geometry_nodes_objects
