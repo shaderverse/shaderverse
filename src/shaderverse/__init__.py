@@ -1,5 +1,4 @@
 import bpy
-import bpy.utils.previews
 import os
 import random
 import json
@@ -9,7 +8,7 @@ bl_info = {
     "name": "Shaderverse",
     "description": "Create parametricly driven NFTs using Geometry Nodes",
     "author": "Michael Gold",
-    "version": (1, 0, 6),
+    "version": (1, 0, 7),
     "blender": (3, 0, 0),
     "location": "Object > Modifier",
     "warning": "", # used for warning icon and text in addons panel
@@ -138,6 +137,9 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
+    enable_python_script: bpy.props.BoolProperty(name="Run Custom Script After Generation", default=False)
+    python_script: bpy.props.PointerProperty(name="Python Script", type=bpy.types.Text)
+
     
 
 class SHADERVERSE_PT_main(bpy.types.Panel):
@@ -288,7 +290,28 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
                 col2.box().label(text=attribute["value"])
                 # layout.separator_spacer()
 
- 
+
+class SHADERVERSE_PT_settings(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Shaderverse"
+    bl_label = "Settings"
+    bl_idname = "SHADERVERSE_PT_settings"
+
+    def draw(self, context):
+        # You can set the property values that should be used when the user
+        # presses the button in the UI.
+        layout = self.layout 
+        row = layout.row()
+        grid_flow = row.grid_flow(columns=1, even_columns=True, row_major=True)
+        col = grid_flow.column()
+        this_context = bpy.context.scene
+        
+        col.prop(this_context.shaderverse, 'enable_python_script')
+
+        if this_context.shaderverse.enable_python_script:
+            box = col.box()
+            box.prop(this_context.shaderverse, 'python_script', text="Python Script")
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
@@ -554,7 +577,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         mesh = bpy.data.meshes[mesh_name]
         mesh.update()
 
-
     def execute(self, context):
         self.geometry_node_objects = []
         self.collection = []
@@ -574,8 +596,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             if not node_object["is_parent_node"]:
                 self.update_mesh(node_object)
 
-        # 
-        
         # if object_ref.shaderverse.parent_node save metadata for all children
         
         
@@ -588,6 +608,10 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         self.set_attributes()
 
         print(self.attributes)
+
+        # run a custom script after generation
+        if bpy.context.scene.shaderverse.python_script and bpy.context.scene.shaderverse.enable_python_script:
+            exec(compile(bpy.context.scene.shaderverse.python_script.as_string(), 'textblock', 'exec'))
 
 
         return {'FINISHED'}
@@ -620,6 +644,7 @@ classes = [
     SHADERVERSE_PT_rendering,
     SHADERVERSE_PT_metadata,
     SHADERVERSE_PT_generated_metadata,
+    SHADERVERSE_PT_settings,
     # SHADERVERSE_PT_dependency_list,
     SHADERVERSE_UL_dependency_list,
     SHADERVERSE_OT_dependency_list_new_item,
@@ -630,6 +655,7 @@ classes = [
 
 
 def register():
+    import bpy.utils.previews
     global custom_icons
     custom_icons = bpy.utils.previews.new()
     addon_path =  os.path.dirname(__file__)
