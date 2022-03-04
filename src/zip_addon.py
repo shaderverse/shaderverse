@@ -1,6 +1,9 @@
-from shaderverse import bl_info 
 import shutil
+import json
 import sys
+
+with open('bl_info.json') as f:
+   bl_info = json.load(f)
 
 sys.dont_write_bytecode = True
 
