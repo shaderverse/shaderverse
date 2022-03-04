@@ -3,21 +3,19 @@ import os
 import random
 import json
 
-
 bl_info = {
-    "name": "Shaderverse",
-    "description": "Create parametricly driven NFTs using Geometry Nodes",
-    "author": "Michael Gold",
-    "version": (1, 0, 7),
-    "blender": (3, 0, 0),
-    "location": "Object > Modifier",
-    "warning": "", # used for warning icon and text in addons panel
-    "doc_url": "Shaderverse",
-    "tracker_url": "https://github.com/shaderverse/shaderverse",
-    "support": "COMMUNITY",
-    "category": "NFT",
+  "name": "Shaderverse",
+  "description": "Create parametricly driven NFTs using Geometry Nodes",
+  "author": "Michael Gold",
+  "version": (1, 0, 8),
+  "blender": (3, 1, 0),
+  "location": "Object > Modifier",
+  "warning": "",
+  "doc_url": "Shaderverse",
+  "tracker_url": "https://github.com/shaderverse/shaderverse",
+  "support": "COMMUNITY",
+  "category": "NFT"
 }
-
 
 custom_icons = None
 
@@ -137,8 +135,12 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
-    enable_python_script: bpy.props.BoolProperty(name="Run Custom Script After Generation", default=False)
-    python_script: bpy.props.PointerProperty(name="Python Script", type=bpy.types.Text)
+    enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
+    pre_generation_script: bpy.props.PointerProperty(name="Pre-generation Script", type=bpy.types.Text)
+
+    enable_post_generation_script: bpy.props.BoolProperty(name="Run Custom Script After Generation", default=False)
+    post_generation_script: bpy.props.PointerProperty(name="Post-generation Script", type=bpy.types.Text)
+
 
     
 
@@ -307,11 +309,17 @@ class SHADERVERSE_PT_settings(bpy.types.Panel):
         col = grid_flow.column()
         this_context = bpy.context.scene
         
-        col.prop(this_context.shaderverse, 'enable_python_script')
+        col.prop(this_context.shaderverse, 'enable_pre_generation_script')
 
-        if this_context.shaderverse.enable_python_script:
+        if this_context.shaderverse.enable_pre_generation_script:
             box = col.box()
-            box.prop(this_context.shaderverse, 'python_script', text="Python Script")
+            box.prop(this_context.shaderverse, 'pre_generation_script', text="Python Script")
+
+        col.prop(this_context.shaderverse, 'enable_post_generation_script')
+
+        if this_context.shaderverse.enable_post_generation_script:
+            box = col.box()
+            box.prop(this_context.shaderverse, 'post_generation_script', text="Python Script")
 
 class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
@@ -582,6 +590,10 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         self.collection = []
         self.attributes = []
 
+        # run a custom script before generation
+        if bpy.context.scene.shaderverse.pre_generation_script and bpy.context.scene.shaderverse.enable_pre_generation_script:
+            exec(compile(bpy.context.scene.shaderverse.pre_generation_script.as_string(), 'textblock', 'exec'))
+
         for obj in self.all_objects:
             object_name = obj[0]
             object_ref = obj[1]
@@ -610,8 +622,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         print(self.attributes)
 
         # run a custom script after generation
-        if bpy.context.scene.shaderverse.python_script and bpy.context.scene.shaderverse.enable_python_script:
-            exec(compile(bpy.context.scene.shaderverse.python_script.as_string(), 'textblock', 'exec'))
+        if bpy.context.scene.shaderverse.post_generation_script and bpy.context.scene.shaderverse.enable_post_generation_script:
+            exec(compile(bpy.context.scene.shaderverse.post_generation_script.as_string(), 'textblock', 'exec'))
 
 
         return {'FINISHED'}
