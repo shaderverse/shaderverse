@@ -36,20 +36,10 @@ class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
     
     
     def get_trait_type(self, trait):
-        node_object = json.loads(bpy.context.scene.shaderverse.parent_node)
-        modifier_name = node_object["modifier_name"]
-        modifier = node_object["modifier_ref"]
-        node_group = modifier.node_group
-        node_group_name = node_group.name
-        object_name = node_object["object_name"]
-        object_ref = bpy.data.objects[object_name]
+        node_group = bpy.context.scene.shaderverse.parent_node.node_group
+        return (node_group.inputs[trait].type)
 
-        for item in node_group.inputs.items():
-            item_name = item[0]
-            item_ref = item[1]
-            
-            item_type = item_ref.type
-            item_input_id = item_ref.identifier 
+         
 
 
 
@@ -194,11 +184,16 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     #builting string (variable)property
     string_field: bpy.props.StringProperty(name='string field')
     
+class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
+    modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
+    node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
+    object: bpy.props.PointerProperty(name="Parent Node's Object",  type=bpy.types.Object)
+
+    
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
-    parent_node_modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
-    parent_node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
-    parent_node_object: bpy.props.PointerProperty(name="Parent Node's Object",  type=bpy.types.Object)
+
+    parent_node: bpy.props.PointerProperty(type=SHADERVERSE_PG_parent_node)
     
     enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
     pre_generation_script: bpy.props.PointerProperty(name="Pre-generation Script", type=bpy.types.Text)
@@ -708,10 +703,10 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             # update the parent nodes first
             if node_object["is_parent_node"]:
                 self.parent_node = node_object
-                bpy.context.scene.shaderverse.parent_node_modifier_name = node_object["modifier_name"]
-                bpy.context.scene.shaderverse.parent_node_group = node_object["node_group"]
+                bpy.context.scene.shaderverse.parent_node.modifier_name = node_object["modifier_name"]
+                bpy.context.scene.shaderverse.parent_node.node_group = node_object["node_group"]
                 object_name = node_object["object_name"]
-                bpy.context.scene.shaderverse.parent_node_object = bpy.data.objects[object_name]
+                bpy.context.scene.shaderverse.parent_node.object = bpy.data.objects[object_name]
                 
 
     def execute(self, context):
@@ -779,6 +774,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 classes = [
     SHADERVERSE_PG_dependency_list_item,
     SHADERVERSE_PG_main,
+    SHADERVERSE_PG_parent_node,
     SHADERVERSE_PG_scene,
     SHADERVERSE_PT_main,
     # SHADERVERSE_PT_object,
