@@ -27,7 +27,7 @@ class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
         items = []
         
         for attribute in generated_metadata:
-            trait_type = attribute[trait_type]
+            trait_type = attribute["trait_type"]
             items.append((trait_type, trait_type, ""))
         return items
 
@@ -38,11 +38,6 @@ class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
     def get_trait_type(self, trait):
         node_group = bpy.context.scene.shaderverse.parent_node.node_group
         return (node_group.inputs[trait].type)
-
-         
-
-
-
 
 
     dependency_object: bpy.props.PointerProperty(
@@ -90,7 +85,7 @@ class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            text = item.dependency.name if hasattr(item.dependency, "name") else "Select an Object"
+            text = item.dependency_object.name if hasattr(item.dependency_object, "name") else "Select an Object"
             layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
@@ -161,8 +156,6 @@ class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
         self.move_index()
 
         return{'FINISHED'}
-
-
 
 
 class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
@@ -417,7 +410,7 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
             item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
 
             row = col.row()
-            row.prop(item, "dependency")
+            row.prop(item, "dependency_object")
             # row.prop(item, "random_prop")
 
 
