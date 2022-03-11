@@ -376,7 +376,7 @@ class SHADERVERSE_PT_settings(bpy.types.Panel):
 
 class SHADERVERSE_PT_restrictions(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
-    bl_label = "Limit to these objects"
+    bl_label = "Restrict availability to when any of these conditions are true"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
