@@ -85,7 +85,7 @@ class SHADERVERSE_UL_restrictions(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            text = item.trait if hasattr(item.trait, "name") else "Select a trait"
+            text = item.trait if item.trait else "Select a trait"
             layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
