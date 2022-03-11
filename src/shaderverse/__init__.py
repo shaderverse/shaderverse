@@ -22,8 +22,6 @@ custom_icons = None
 class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
-    active_field = None
-    active_condition = None
 
     def get_traits(self, context):
         generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
@@ -34,13 +32,8 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
             items.append((trait_type, trait_type, ""))
         return items
     
-    def update_traits(self, c):
-        print("updating traits")
-        self.active_field = self.get_active_field()
-        print(self.get_active_field())
-        self.active_condition = self.get_active_condition()
 
-    trait: bpy.props.EnumProperty(items=get_traits, update=update_traits, name="Objects", description="Traits"
+    trait: bpy.props.EnumProperty(items=get_traits, name="Objects", description="Traits"
     )
     
     def __repr__(self):
@@ -56,7 +49,8 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
         if trait == None:
             trait = self.trait
         node_group = bpy.context.scene.shaderverse.parent_node.node_group
-        return (node_group.inputs[trait].type)
+        if node_group:
+            return (node_group.inputs[trait].type)
     
     def get_active_field(self):
         trait_type = self.get_trait_type()
@@ -113,6 +107,8 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
                 return "extended_condition"
             case "INT":
                 return "extended_condition"  
+            case None:
+                return "" 
         
     restriction_object: bpy.props.PointerProperty(
         name="Object",
