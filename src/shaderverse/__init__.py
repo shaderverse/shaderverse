@@ -33,6 +33,25 @@ class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
 
     trait: bpy.props.EnumProperty(items=get_traits, name="Objects", description="Traits"
     )
+    
+    
+    def get_trait_type(self, trait):
+        node_object = json.loads(bpy.context.scene.shaderverse.parent_node)
+        modifier_name = node_object["modifier_name"]
+        modifier = node_object["modifier_ref"]
+        node_group = modifier.node_group
+        node_group_name = node_group.name
+        object_name = node_object["object_name"]
+        object_ref = bpy.data.objects[object_name]
+
+        for item in node_group.inputs.items():
+            item_name = item[0]
+            item_ref = item[1]
+            
+            item_type = item_ref.type
+            item_input_id = item_ref.identifier 
+
+
 
 
 
@@ -177,7 +196,10 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
-    parent_node: bpy.props.StringProperty(name="Parent Node", str="The parent node for the NFT", type=bpy.types.Node)
+    parent_node_modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
+    parent_node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
+    parent_node_object: bpy.props.PointerProperty(name="Parent Node's Object",  type=bpy.types.Object)
+    
     enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
     pre_generation_script: bpy.props.PointerProperty(name="Pre-generation Script", type=bpy.types.Text)
 
@@ -450,6 +472,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         "object_ref": object_ref,
                         "modifier_name": modifier_name,
                         "modifier_ref": modifier_ref, 
+                        "node_group": node_group,
                         "is_parent_node": object_ref.shaderverse.is_parent_node
                     }
                     geometry_node_objects.append(node_object)
@@ -685,7 +708,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             # update the parent nodes first
             if node_object["is_parent_node"]:
                 self.parent_node = node_object
-                bpy.context.scene.shaderverse.parent_node = json.dumps(self.parent_node)
+                bpy.context.scene.shaderverse.parent_node_modifier_name = node_object["modifier_name"]
+                bpy.context.scene.shaderverse.parent_node_group = node_object["node_group"]
+                object_name = node_object["object_name"]
+                bpy.context.scene.shaderverse.parent_node_object = bpy.data.objects[object_name]
+                
 
     def execute(self, context):
         self.geometry_node_objects = []
@@ -786,6 +813,7 @@ def register():
     #adds the property group class to the object context (instantiates it)
     bpy.types.Object.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_main)
     bpy.types.Scene.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_scene)
+
 
 
 #same as register but backwards, deleting references
