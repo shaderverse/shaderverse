@@ -22,6 +22,9 @@ custom_icons = None
 class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
+    active_field = None
+    active_condition = None
+
     def get_traits(self, context):
         generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
         items = []
@@ -30,10 +33,24 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
             trait_type = attribute["trait_type"]
             items.append((trait_type, trait_type, ""))
         return items
+    
+    def update_traits(self, c):
+        print("updating traits")
+        self.active_field = self.get_active_field()
+        print(self.get_active_field())
+        self.active_condition = self.get_active_condition()
 
-    trait: bpy.props.EnumProperty(items=get_traits, name="Objects", description="Traits"
+    trait: bpy.props.EnumProperty(items=get_traits, update=update_traits, name="Objects", description="Traits"
     )
     
+    def __repr__(self):
+        active_field_object = self.get_active_field()
+        active_field_name = active_field_object.name if hasattr(active_field_object, "name") else None 
+        active_condition = self.get_active_condition()
+        if active_field_name and active_condition:
+            return "{} {} {}".format(self.trait, self.get_active_condition(), active_field_name)
+        else:
+            return "Select condition"
     
     def get_trait_type(self, trait=None):
         if trait == None:
@@ -68,7 +85,34 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
                 return "restriction_value"
             case "INT":
                 return "restriction_int"
-               
+
+    def get_active_condition(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return self.exist_condition
+            case "COLLECTION":
+                return self.exist_condition
+            case "MATERIAL":
+                return self.exist_condition
+            case "VALUE":
+                return self.extended_condition
+            case "INT":
+                return self.extended_condition
+
+    def get_active_condition_name(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return "exist_condition"
+            case "COLLECTION":
+                return "exist_condition"
+            case "MATERIAL":
+                return "exist_condition"
+            case "VALUE":
+                return "extended_condition"
+            case "INT":
+                return "extended_condition"  
         
     restriction_object: bpy.props.PointerProperty(
         name="Object",
@@ -97,18 +141,28 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
         name="Float",
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
-    
-    
 
-    comparison =  [
+
+    extended_comparison =  [
         ('==', 'Equal to', "Equal to"),
 		('!=', 'Not equal to', "Not equal to"),
 		('<', 'Less than', "Less than"),
         ('>', 'Greater than', "Greater than")
         ]
 
-    condition: bpy.props.EnumProperty(
-        items = comparison,
+    exist_comparison =  [
+        ('==', 'Equal to', "Equal to"),
+		('!=', 'Not equal to', "Not equal to")
+        ]
+
+    extended_condition: bpy.props.EnumProperty(
+        items = extended_comparison,
+		name = "Filter",
+		description = "Choose the type of filter"
+		) 
+
+    exist_condition: bpy.props.EnumProperty(
+        items = exist_comparison,
 		name = "Filter",
 		description = "Choose the type of filter"
 		) 
@@ -126,7 +180,7 @@ class SHADERVERSE_UL_restrictions(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            text = item.trait if item.trait else "Select a trait"
+            text = item.__repr__() if item else "Select a trait"
             layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
@@ -451,8 +505,9 @@ class SHADERVERSE_PT_restrictions(bpy.types.Panel):
             item = this_context.shaderverse.restrictions[this_context.shaderverse.restrictions_index]
 
             row = col.row()
-            row.prop(item, "trait", text="") 
-            row.prop(item, "condition", text="")
+            row.prop(item, "trait", text="")
+            active_condition_name = item.get_active_condition_name()
+            row.prop(item, active_condition_name, text="")
             active_field_name = item.get_active_field_name()
             row.prop(item, active_field_name, text="")
             # row.prop(item, "random_prop")
