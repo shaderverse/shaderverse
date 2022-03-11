@@ -35,11 +35,41 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     )
     
     
-    def get_trait_type(self, trait):
+    def get_trait_type(self, trait=None):
+        if trait == None:
+            trait = self.trait
         node_group = bpy.context.scene.shaderverse.parent_node.node_group
         return (node_group.inputs[trait].type)
+    
+    def get_active_field(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return self.restriction_object
+            case "COLLECTION":
+                return self.restriction_collection
+            case "MATERIAL":
+                return self.restriction_material
+            case "VALUE":
+                return self.restriction_value
+            case "INT":
+                return self.restriction_int
 
-
+    def get_active_field_name(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return "restriction_object"
+            case "COLLECTION":
+                return "restriction_collection"
+            case "MATERIAL":
+                return "restriction_material"
+            case "VALUE":
+                return "restriction_value"
+            case "INT":
+                return "restriction_int"
+               
+        
     restriction_object: bpy.props.PointerProperty(
         name="Object",
         type=bpy.types.Object,
@@ -49,28 +79,39 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     restriction_collection: bpy.props.PointerProperty(
         name="Collection",
         type=bpy.types.Collection,
+        description="Only make this object available for selection if one of the collections in this list have been selected"
+    )
+
+    restriction_material: bpy.props.PointerProperty(
+        name="Material",
+        type=bpy.types.Material,
+        description="Only make this object available for selection if this material has been selected"
+    )
+
+    restriction_value: bpy.props.FloatProperty(
+        name="Float",
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
 
-    restriction_float: bpy.props.FloatProperty(
+    restriction_int: bpy.props.FloatProperty(
         name="Float",
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
     
     
 
-    # filter_items =  [
-    #     ('EQUAL', 'Equal', "Equal to"),
-	# 	('NOTEQUAL', 'Not Equal', "Not equal to"),
-	# 	('LESSTHAN', 'Less Than', "Less than"),
-    #     ('GREATERTHAN', 'Greater Than', "Greater than")
-    #     ],
+    comparison =  [
+        ('==', 'Equal to', "Equal to"),
+		('!=', 'Not equal to', "Not equal to"),
+		('<', 'Less than', "Less than"),
+        ('>', 'Greater than', "Greater than")
+        ]
 
-    # filter: bpy.props.EnumProperty(
-    #     items = filter_items,
-	# 	name = "Filter",
-	# 	description = "Choose the type of filter"
-	# 	) 
+    condition: bpy.props.EnumProperty(
+        items = comparison,
+		name = "Filter",
+		description = "Choose the type of filter"
+		) 
 
     
 
@@ -411,7 +452,9 @@ class SHADERVERSE_PT_restrictions(bpy.types.Panel):
 
             row = col.row()
             row.prop(item, "trait", text="") 
-            row.prop(item, "restriction_object", text="")
+            row.prop(item, "condition", text="")
+            active_field_name = item.get_active_field_name()
+            row.prop(item, active_field_name, text="")
             # row.prop(item, "random_prop")
 
 
