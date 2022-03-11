@@ -410,8 +410,8 @@ class SHADERVERSE_PT_restrictions(bpy.types.Panel):
             item = this_context.shaderverse.restrictions[this_context.shaderverse.restrictions_index]
 
             row = col.row()
-            row.prop(item, "trait") 
-            row.prop(item, "restriction_object")
+            row.prop(item, "trait", text="") 
+            row.prop(item, "restriction_object", text="")
             # row.prop(item, "random_prop")
 
 
