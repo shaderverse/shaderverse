@@ -22,7 +22,7 @@ custom_icons = None
 class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
-    def get_traits(self, context):
+    def get_traits(self):
         generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
         items = []
         
@@ -85,7 +85,7 @@ class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            text = item.dependency_object.name if hasattr(item.dependency_object, "name") else "Select an Object"
+            text = item.trait if hasattr(item.trait, "name") else "Select a trait"
             layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
@@ -410,6 +410,7 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
             item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
 
             row = col.row()
+            row.prop(item, "trait") 
             row.prop(item, "dependency_object")
             # row.prop(item, "random_prop")
 
