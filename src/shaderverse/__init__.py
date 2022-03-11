@@ -7,7 +7,7 @@ bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 8),
+  "version": (1, 0, 10),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
@@ -22,11 +22,53 @@ custom_icons = None
 class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
-    dependency: bpy.props.PointerProperty(
+    def get_traits(self, context):
+        generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+        items = []
+        
+        for attribute in generated_metadata:
+            trait_type = attribute[trait_type]
+            items.append((trait_type, trait_type, ""))
+        return items
+
+    trait: bpy.props.EnumProperty(items=get_traits, name="Objects", description="Traits"
+    )
+
+
+
+    dependency_object: bpy.props.PointerProperty(
         name="Object",
         type=bpy.types.Object,
         description="Only make this object available for selection if one of the objects in this list have been selected"
     )
+
+    dependency_collection: bpy.props.PointerProperty(
+        name="Collection",
+        type=bpy.types.Collection,
+        description="Only make this object available for selection if one of the collection in this list have been selected"
+    )
+
+    dependency_float: bpy.props.FloatProperty(
+        name="Float",
+        description="Only make this object available for selection if one of the collection in this list have been selected"
+    )
+    
+    
+
+    # filter_items =  [
+    #     ('EQUAL', 'Equal', "Equal to"),
+	# 	('NOTEQUAL', 'Not Equal', "Not equal to"),
+	# 	('LESSTHAN', 'Less Than', "Less than"),
+    #     ('GREATERTHAN', 'Greater Than', "Greater than")
+    #     ],
+
+    # filter: bpy.props.EnumProperty(
+    #     items = filter_items,
+	# 	name = "Filter",
+	# 	description = "Choose the type of filter"
+	# 	) 
+
+    
 
 
 class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
@@ -135,6 +177,7 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
+    parent_node: bpy.props.StringProperty(name="Parent Node", str="The parent node for the NFT", type=bpy.types.Node)
     enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
     pre_generation_script: bpy.props.PointerProperty(name="Pre-generation Script", type=bpy.types.Text)
 
@@ -381,6 +424,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     attributes = []
 
     geometry_node_objects = []
+    parent_node = None
 
     def __init__(self):
         self.all_objects = bpy.data.objects.items()
@@ -415,14 +459,63 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     collection = []
 
+    def is_item_dependeny_found(attributes, dependencies):
+        found = False
+        for attribute in attributes.values():
+            for dependency in dependencies:
+                if dependency == attribute:
+                    found = True
+                return found
+        return found
+
+
+
+        # attributes = {}
+        # for blender_collection in blender_objects:
+        #     attribute_names = []
+        #     attribute_weights = []    
+        #     for blender_object in blender_collection["objects"]:
+        #         exclude = False
+        #         # exclude if it has a dependency that isn't already in the set of attributes
+        #         if (len(blender_object["dependencies"]) > 0) and ( is_item_missing_dependencies(attributes, blender_object["dependencies"])):
+        #             exclude = True
+                
+        #         if not exclude:
+        #             attribute_names.append(blender_object["name"])
+        #             attribute_weights.append(blender_object["weight"])
+
+        #     # select the trait from this collection
+        #     attribute_value = random.choices(attribute_names, weights=tuple(attribute_weights), k=1)
+
+        #     attributes[blender_collection["collection name"]] =  attribute_value[0]
+
+
+
+
+
+
+    def get_object_dependencies(self, obj):
+        dependencies = []
+        for item in obj.shaderverse.dependency_list:
+            dependencies.append(item.dependency.name)
+        return dependencies
+
     def select_object_from_collection(self, collection):
         collection_object_names = []
         collection_object_weights = []
         active_geometry_node_objects = []
         
         for obj in collection.objects:
-            collection_object_names.append(obj.name)
-            collection_object_weights.append(obj.shaderverse.weight)
+            dependencies = self.get_object_dependencies(obj)
+
+            # TODO Check this logic works
+            print(self.attributes)
+
+            if (len(dependencies) < 1) or (self.is_item_dependeny_found(self.attributes, dependencies)):
+            
+                collection_object_names.append(obj.name)
+                collection_object_weights.append(obj.shaderverse.weight)
+             
         selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
         return bpy.data.objects[selected_object_name]
 
@@ -585,6 +678,15 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         mesh = bpy.data.meshes[mesh_name]
         mesh.update()
 
+    
+
+    def set_parent_node(self):
+        for node_object in self.geometry_node_objects:
+            # update the parent nodes first
+            if node_object["is_parent_node"]:
+                self.parent_node = node_object
+                bpy.context.scene.shaderverse.parent_node = json.dumps(self.parent_node)
+
     def execute(self, context):
         self.geometry_node_objects = []
         self.collection = []
@@ -598,6 +700,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             object_name = obj[0]
             object_ref = obj[1]
             self.geometry_node_objects += self.find_geometry_nodes(object_ref)
+
+        self.set_parent_node()
 
         for node_object in self.geometry_node_objects:
             # update the parent nodes first
@@ -657,7 +761,7 @@ classes = [
     SHADERVERSE_PT_metadata,
     SHADERVERSE_PT_generated_metadata,
     SHADERVERSE_PT_settings,
-    # SHADERVERSE_PT_dependency_list,
+    SHADERVERSE_PT_dependency_list,
     SHADERVERSE_UL_dependency_list,
     SHADERVERSE_OT_dependency_list_new_item,
     SHADERVERSE_OT_dependency_list_delete_item,
