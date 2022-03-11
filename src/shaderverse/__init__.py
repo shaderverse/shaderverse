@@ -19,10 +19,10 @@ bl_info = {
 
 custom_icons = None
 
-class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
+class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
-    def get_traits(self):
+    def get_traits(self, context):
         generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
         items = []
         
@@ -40,19 +40,19 @@ class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
         return (node_group.inputs[trait].type)
 
 
-    dependency_object: bpy.props.PointerProperty(
+    restriction_object: bpy.props.PointerProperty(
         name="Object",
         type=bpy.types.Object,
         description="Only make this object available for selection if one of the objects in this list have been selected"
     )
 
-    dependency_collection: bpy.props.PointerProperty(
+    restriction_collection: bpy.props.PointerProperty(
         name="Collection",
         type=bpy.types.Collection,
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
 
-    dependency_float: bpy.props.FloatProperty(
+    restriction_float: bpy.props.FloatProperty(
         name="Float",
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
@@ -75,8 +75,8 @@ class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
     
 
 
-class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
-    """Dependency UI List"""
+class SHADERVERSE_UL_restrictions(bpy.types.UIList):
+    """Restriction UI List"""
 
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
@@ -93,42 +93,42 @@ class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
             layout.label(text="", icon = custom_icon)
 
 
-class SHADERVERSE_OT_dependency_list_new_item(bpy.types.Operator):
+class SHADERVERSE_OT_restrictions_new_item(bpy.types.Operator):
     """Add a new item to the list."""
 
-    bl_idname = "shaderverse.dependency_list_new_item"
+    bl_idname = "shaderverse.restrictions_new_item"
     bl_label = "Add a new item"
 
     def execute(self, context):
-        context.object.shaderverse.dependency_list.add()
+        context.object.shaderverse.restrictions.add()
 
         return{'FINISHED'}
 
 
-class SHADERVERSE_OT_dependency_list_delete_item(bpy.types.Operator):
+class SHADERVERSE_OT_restrictions_delete_item(bpy.types.Operator):
     """Delete the selected item from the list."""
 
-    bl_idname = "shaderverse.dependency_list_delete_item"
+    bl_idname = "shaderverse.restrictions_delete_item"
     bl_label = "Deletes an item"
 
     @classmethod
     def poll(cls, context):
-        return context.object.shaderverse.dependency_list
+        return context.object.shaderverse.restrictions
 
     def execute(self, context):
-        dependency_list = context.object.shaderverse.dependency_list
-        index = context.object.shaderverse.dependency_list_index
+        restrictions = context.object.shaderverse.restrictions
+        index = context.object.shaderverse.restrictions_index
 
-        dependency_list.remove(index)
-        context.object.shaderverse.dependency_list_index = min(max(0, index - 1), len(dependency_list) - 1)
+        restrictions.remove(index)
+        context.object.shaderverse.restrictions_index = min(max(0, index - 1), len(restrictions) - 1)
 
         return{'FINISHED'}
 
 
-class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
+class SHADERVERSE_OT_restrictions_move_item(bpy.types.Operator):
     """Move an item in the list."""
 
-    bl_idname = "shaderverse.dependency_list_move_item"
+    bl_idname = "shaderverse.restrictions_move_item"
     bl_label = "Move an item in the list"
 
     direction: bpy.props.EnumProperty(items=(('UP', 'Up', ""),
@@ -136,23 +136,23 @@ class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.object.shaderverse.dependency_list
+        return context.object.shaderverse.restrictions
 
     def move_index(self):
         """ Move index of an item render queue while clamping it. """
 
-        index = bpy.context.object.shaderverse.dependency_list_index
-        list_length = len(bpy.context.object.shaderverse.dependency_list) - 1  # (index starts at 0)
+        index = bpy.context.object.shaderverse.restrictions_index
+        list_length = len(bpy.context.object.shaderverse.restrictions) - 1  # (index starts at 0)
         new_index = index + (-1 if self.direction == 'UP' else 1)
 
-        bpy.context.object.shaderverse.dependency_list_index = max(0, min(new_index, list_length))
+        bpy.context.object.shaderverse.restrictions_index = max(0, min(new_index, list_length))
 
     def execute(self, context):
-        dependency_list = context.object.shaderverse.dependency_list
-        index = context.object.shaderverse.dependency_list_index
+        restrictions = context.object.shaderverse.restrictions
+        index = context.object.shaderverse.restrictions_index
 
         neighbor = index + (-1 if self.direction == 'UP' else 1)
-        dependency_list.move(neighbor, index)
+        restrictions.move(neighbor, index)
         self.move_index()
 
         return{'FINISHED'}
@@ -165,9 +165,9 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     is_parent_node: bpy.props.BoolProperty(name='bool toggle', default=False)
 
 
-    dependency_list: bpy.props.CollectionProperty(type=SHADERVERSE_PG_dependency_list_item)
+    restrictions: bpy.props.CollectionProperty(type=SHADERVERSE_PG_restrictions_item)
     
-    dependency_list_index: bpy.props.IntProperty(name = "Index for shaderverse.dependency_list", default = 0)
+    restrictions_index: bpy.props.IntProperty(name = "Index for shaderverse.restrictions", default = 0)
 
 
     #builtin integer (variable)property
@@ -374,7 +374,7 @@ class SHADERVERSE_PT_settings(bpy.types.Panel):
             box = col.box()
             box.prop(this_context.shaderverse, 'post_generation_script', text="Python Script")
 
-class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
+class SHADERVERSE_PT_restrictions(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
     bl_label = "Limit to these objects"
     bl_space_type = 'PROPERTIES'
@@ -397,21 +397,21 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
         
 
         row = col.row()
-        row.template_list("SHADERVERSE_UL_dependency_list", "The_List", this_context.shaderverse,
-                          "dependency_list", this_context.shaderverse, "dependency_list_index")
+        row.template_list("SHADERVERSE_UL_restrictions", "The_List", this_context.shaderverse,
+                          "restrictions", this_context.shaderverse, "restrictions_index")
 
         row = col.row()
-        row.operator('shaderverse.dependency_list_new_item', text='NEW')
-        row.operator('shaderverse.dependency_list_delete_item', text='REMOVE')
-        row.operator('shaderverse.dependency_list_move_item', text='UP').direction = 'UP'
-        row.operator('shaderverse.dependency_list_move_item', text='DOWN').direction = 'DOWN'
+        row.operator('shaderverse.restrictions_new_item', text='NEW')
+        row.operator('shaderverse.restrictions_delete_item', text='REMOVE')
+        row.operator('shaderverse.restrictions_move_item', text='UP').direction = 'UP'
+        row.operator('shaderverse.restrictions_move_item', text='DOWN').direction = 'DOWN'
 
-        if this_context.shaderverse.dependency_list_index >= 0 and this_context.shaderverse.dependency_list:
-            item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
+        if this_context.shaderverse.restrictions_index >= 0 and this_context.shaderverse.restrictions:
+            item = this_context.shaderverse.restrictions[this_context.shaderverse.restrictions_index]
 
             row = col.row()
             row.prop(item, "trait") 
-            row.prop(item, "dependency_object")
+            row.prop(item, "restriction_object")
             # row.prop(item, "random_prop")
 
 
@@ -471,11 +471,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     collection = []
 
-    def is_item_dependeny_found(attributes, dependencies):
+    def is_item_restriction_found(attributes, restrictions):
         found = False
         for attribute in attributes.values():
-            for dependency in dependencies:
-                if dependency == attribute:
+            for restriction in restrictions:
+                if restriction == attribute:
                     found = True
                 return found
         return found
@@ -488,8 +488,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         #     attribute_weights = []    
         #     for blender_object in blender_collection["objects"]:
         #         exclude = False
-        #         # exclude if it has a dependency that isn't already in the set of attributes
-        #         if (len(blender_object["dependencies"]) > 0) and ( is_item_missing_dependencies(attributes, blender_object["dependencies"])):
+        #         # exclude if it has a restriction that isn't already in the set of attributes
+        #         if (len(blender_object["restrictions"]) > 0) and ( is_item_missing_restrictions(attributes, blender_object["restrictions"])):
         #             exclude = True
                 
         #         if not exclude:
@@ -506,11 +506,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 
 
-    def get_object_dependencies(self, obj):
-        dependencies = []
-        for item in obj.shaderverse.dependency_list:
-            dependencies.append(item.dependency.name)
-        return dependencies
+    def get_object_restrictions(self, obj):
+        restrictions = []
+        for item in obj.shaderverse.restrictions:
+            restrictions.append(item.restriction.name)
+        return restrictions
 
     def select_object_from_collection(self, collection):
         collection_object_names = []
@@ -518,12 +518,12 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         active_geometry_node_objects = []
         
         for obj in collection.objects:
-            dependencies = self.get_object_dependencies(obj)
+            restrictions = self.get_object_restrictions(obj)
 
             # TODO Check this logic works
             print(self.attributes)
 
-            if (len(dependencies) < 1) or (self.is_item_dependeny_found(self.attributes, dependencies)):
+            if (len(restrictions) < 1) or (self.is_item_restriction_found(self.attributes, restrictions)):
             
                 collection_object_names.append(obj.name)
                 collection_object_weights.append(obj.shaderverse.weight)
@@ -766,7 +766,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 
 classes = [
-    SHADERVERSE_PG_dependency_list_item,
+    SHADERVERSE_PG_restrictions_item,
     SHADERVERSE_PG_main,
     SHADERVERSE_PG_parent_node,
     SHADERVERSE_PG_scene,
@@ -778,11 +778,11 @@ classes = [
     SHADERVERSE_PT_metadata,
     SHADERVERSE_PT_generated_metadata,
     SHADERVERSE_PT_settings,
-    SHADERVERSE_PT_dependency_list,
-    SHADERVERSE_UL_dependency_list,
-    SHADERVERSE_OT_dependency_list_new_item,
-    SHADERVERSE_OT_dependency_list_delete_item,
-    SHADERVERSE_OT_dependency_list_move_item,
+    SHADERVERSE_PT_restrictions,
+    SHADERVERSE_UL_restrictions,
+    SHADERVERSE_OT_restrictions_new_item,
+    SHADERVERSE_OT_restrictions_delete_item,
+    SHADERVERSE_OT_restrictions_move_item,
     SHADERVERSE_OT_generate
 ]
 
