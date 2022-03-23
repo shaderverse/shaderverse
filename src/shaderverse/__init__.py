@@ -7,7 +7,7 @@ bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 8),
+  "version": (1, 0, 10),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
@@ -19,18 +19,155 @@ bl_info = {
 
 custom_icons = None
 
-class SHADERVERSE_PG_dependency_list_item(bpy.types.PropertyGroup):
+class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
-    dependency: bpy.props.PointerProperty(
+
+    def get_traits(self, context):
+        generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+        items = []
+        
+        for attribute in generated_metadata:
+            trait_type = attribute["trait_type"]
+            items.append((trait_type, trait_type, ""))
+        return items
+    
+
+    trait: bpy.props.EnumProperty(items=get_traits, name="Objects", description="Traits"
+    )
+    
+    def __repr__(self):
+        active_field_object = self.get_active_field()
+        active_field_name = active_field_object.name if hasattr(active_field_object, "name") else None 
+        active_condition = self.get_active_condition()
+        if active_field_name and active_condition:
+            return "{} {} {}".format(self.trait, self.get_active_condition(), active_field_name)
+        else:
+            return "Select condition"
+    
+    def get_trait_type(self, trait=None):
+        if trait == None:
+            trait = self.trait
+        node_group = bpy.context.scene.shaderverse.parent_node.node_group
+        if node_group:
+            return (node_group.inputs[trait].type)
+    
+    def get_active_field(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return self.restriction_object
+            case "COLLECTION":
+                return self.restriction_collection
+            case "MATERIAL":
+                return self.restriction_material
+            case "VALUE":
+                return self.restriction_value
+            case "INT":
+                return self.restriction_int
+
+    def get_active_field_name(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return "restriction_object"
+            case "COLLECTION":
+                return "restriction_collection"
+            case "MATERIAL":
+                return "restriction_material"
+            case "VALUE":
+                return "restriction_value"
+            case "INT":
+                return "restriction_int"
+
+    def get_active_condition(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return self.exist_condition
+            case "COLLECTION":
+                return self.exist_condition
+            case "MATERIAL":
+                return self.exist_condition
+            case "VALUE":
+                return self.extended_condition
+            case "INT":
+                return self.extended_condition
+
+    def get_active_condition_name(self):
+        trait_type = self.get_trait_type()
+        match trait_type:
+            case "OBJECT":
+                return "exist_condition"
+            case "COLLECTION":
+                return "exist_condition"
+            case "MATERIAL":
+                return "exist_condition"
+            case "VALUE":
+                return "extended_condition"
+            case "INT":
+                return "extended_condition"  
+            case None:
+                return "" 
+        
+    restriction_object: bpy.props.PointerProperty(
         name="Object",
         type=bpy.types.Object,
         description="Only make this object available for selection if one of the objects in this list have been selected"
     )
 
+    restriction_collection: bpy.props.PointerProperty(
+        name="Collection",
+        type=bpy.types.Collection,
+        description="Only make this object available for selection if one of the collections in this list have been selected"
+    )
 
-class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
-    """Dependency UI List"""
+    restriction_material: bpy.props.PointerProperty(
+        name="Material",
+        type=bpy.types.Material,
+        description="Only make this object available for selection if this material has been selected"
+    )
+
+    restriction_value: bpy.props.FloatProperty(
+        name="Float",
+        description="Only make this object available for selection if one of the collection in this list have been selected"
+    )
+
+    restriction_int: bpy.props.FloatProperty(
+        name="Float",
+        description="Only make this object available for selection if one of the collection in this list have been selected"
+    )
+
+
+    extended_comparison =  [
+        ('==', 'Equal to', "Equal to"),
+		('!=', 'Not equal to', "Not equal to"),
+		('<', 'Less than', "Less than"),
+        ('>', 'Greater than', "Greater than")
+        ]
+
+    exist_comparison =  [
+        ('==', 'Equal to', "Equal to"),
+		('!=', 'Not equal to', "Not equal to")
+        ]
+
+    extended_condition: bpy.props.EnumProperty(
+        items = extended_comparison,
+		name = "Filter",
+		description = "Choose the type of filter"
+		) 
+
+    exist_condition: bpy.props.EnumProperty(
+        items = exist_comparison,
+		name = "Filter",
+		description = "Choose the type of filter"
+		) 
+
+    
+
+
+class SHADERVERSE_UL_restrictions(bpy.types.UIList):
+    """Restriction UI List"""
 
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
@@ -39,7 +176,7 @@ class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            text = item.dependency.name if hasattr(item.dependency, "name") else "Select an Object"
+            text = item.__repr__() if item else "Select a trait"
             layout.label(text=text, icon = custom_icon)
 
         elif self.layout_type in {'GRID'}:
@@ -47,42 +184,42 @@ class SHADERVERSE_UL_dependency_list(bpy.types.UIList):
             layout.label(text="", icon = custom_icon)
 
 
-class SHADERVERSE_OT_dependency_list_new_item(bpy.types.Operator):
+class SHADERVERSE_OT_restrictions_new_item(bpy.types.Operator):
     """Add a new item to the list."""
 
-    bl_idname = "shaderverse.dependency_list_new_item"
+    bl_idname = "shaderverse.restrictions_new_item"
     bl_label = "Add a new item"
 
     def execute(self, context):
-        context.object.shaderverse.dependency_list.add()
+        context.object.shaderverse.restrictions.add()
 
         return{'FINISHED'}
 
 
-class SHADERVERSE_OT_dependency_list_delete_item(bpy.types.Operator):
+class SHADERVERSE_OT_restrictions_delete_item(bpy.types.Operator):
     """Delete the selected item from the list."""
 
-    bl_idname = "shaderverse.dependency_list_delete_item"
+    bl_idname = "shaderverse.restrictions_delete_item"
     bl_label = "Deletes an item"
 
     @classmethod
     def poll(cls, context):
-        return context.object.shaderverse.dependency_list
+        return context.object.shaderverse.restrictions
 
     def execute(self, context):
-        dependency_list = context.object.shaderverse.dependency_list
-        index = context.object.shaderverse.dependency_list_index
+        restrictions = context.object.shaderverse.restrictions
+        index = context.object.shaderverse.restrictions_index
 
-        dependency_list.remove(index)
-        context.object.shaderverse.dependency_list_index = min(max(0, index - 1), len(dependency_list) - 1)
+        restrictions.remove(index)
+        context.object.shaderverse.restrictions_index = min(max(0, index - 1), len(restrictions) - 1)
 
         return{'FINISHED'}
 
 
-class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
+class SHADERVERSE_OT_restrictions_move_item(bpy.types.Operator):
     """Move an item in the list."""
 
-    bl_idname = "shaderverse.dependency_list_move_item"
+    bl_idname = "shaderverse.restrictions_move_item"
     bl_label = "Move an item in the list"
 
     direction: bpy.props.EnumProperty(items=(('UP', 'Up', ""),
@@ -90,28 +227,26 @@ class SHADERVERSE_OT_dependency_list_move_item(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.object.shaderverse.dependency_list
+        return context.object.shaderverse.restrictions
 
     def move_index(self):
         """ Move index of an item render queue while clamping it. """
 
-        index = bpy.context.object.shaderverse.dependency_list_index
-        list_length = len(bpy.context.object.shaderverse.dependency_list) - 1  # (index starts at 0)
+        index = bpy.context.object.shaderverse.restrictions_index
+        list_length = len(bpy.context.object.shaderverse.restrictions) - 1  # (index starts at 0)
         new_index = index + (-1 if self.direction == 'UP' else 1)
 
-        bpy.context.object.shaderverse.dependency_list_index = max(0, min(new_index, list_length))
+        bpy.context.object.shaderverse.restrictions_index = max(0, min(new_index, list_length))
 
     def execute(self, context):
-        dependency_list = context.object.shaderverse.dependency_list
-        index = context.object.shaderverse.dependency_list_index
+        restrictions = context.object.shaderverse.restrictions
+        index = context.object.shaderverse.restrictions_index
 
         neighbor = index + (-1 if self.direction == 'UP' else 1)
-        dependency_list.move(neighbor, index)
+        restrictions.move(neighbor, index)
         self.move_index()
 
         return{'FINISHED'}
-
-
 
 
 class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
@@ -121,9 +256,9 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     is_parent_node: bpy.props.BoolProperty(name='bool toggle', default=False)
 
 
-    dependency_list: bpy.props.CollectionProperty(type=SHADERVERSE_PG_dependency_list_item)
+    restrictions: bpy.props.CollectionProperty(type=SHADERVERSE_PG_restrictions_item)
     
-    dependency_list_index: bpy.props.IntProperty(name = "Index for shaderverse.dependency_list", default = 0)
+    restrictions_index: bpy.props.IntProperty(name = "Index for shaderverse.restrictions", default = 0)
 
 
     #builtin integer (variable)property
@@ -133,8 +268,17 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     #builting string (variable)property
     string_field: bpy.props.StringProperty(name='string field')
     
+class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
+    modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
+    node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
+    object: bpy.props.PointerProperty(name="Parent Node's Object",  type=bpy.types.Object)
+
+    
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
+
+    parent_node: bpy.props.PointerProperty(type=SHADERVERSE_PG_parent_node)
+    
     enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
     pre_generation_script: bpy.props.PointerProperty(name="Pre-generation Script", type=bpy.types.Text)
 
@@ -321,9 +465,9 @@ class SHADERVERSE_PT_settings(bpy.types.Panel):
             box = col.box()
             box.prop(this_context.shaderverse, 'post_generation_script', text="Python Script")
 
-class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
+class SHADERVERSE_PT_restrictions(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
-    bl_label = "Limit to these objects"
+    bl_label = "Restrict availability to when any of these conditions are true"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
@@ -344,20 +488,24 @@ class SHADERVERSE_PT_dependency_list(bpy.types.Panel):
         
 
         row = col.row()
-        row.template_list("SHADERVERSE_UL_dependency_list", "The_List", this_context.shaderverse,
-                          "dependency_list", this_context.shaderverse, "dependency_list_index")
+        row.template_list("SHADERVERSE_UL_restrictions", "The_List", this_context.shaderverse,
+                          "restrictions", this_context.shaderverse, "restrictions_index")
 
         row = col.row()
-        row.operator('shaderverse.dependency_list_new_item', text='NEW')
-        row.operator('shaderverse.dependency_list_delete_item', text='REMOVE')
-        row.operator('shaderverse.dependency_list_move_item', text='UP').direction = 'UP'
-        row.operator('shaderverse.dependency_list_move_item', text='DOWN').direction = 'DOWN'
+        row.operator('shaderverse.restrictions_new_item', text='NEW')
+        row.operator('shaderverse.restrictions_delete_item', text='REMOVE')
+        row.operator('shaderverse.restrictions_move_item', text='UP').direction = 'UP'
+        row.operator('shaderverse.restrictions_move_item', text='DOWN').direction = 'DOWN'
 
-        if this_context.shaderverse.dependency_list_index >= 0 and this_context.shaderverse.dependency_list:
-            item = this_context.shaderverse.dependency_list[this_context.shaderverse.dependency_list_index]
+        if this_context.shaderverse.restrictions_index >= 0 and this_context.shaderverse.restrictions:
+            item = this_context.shaderverse.restrictions[this_context.shaderverse.restrictions_index]
 
             row = col.row()
-            row.prop(item, "dependency")
+            row.prop(item, "trait", text="")
+            active_condition_name = item.get_active_condition_name()
+            row.prop(item, active_condition_name, text="")
+            active_field_name = item.get_active_field_name()
+            row.prop(item, active_field_name, text="")
             # row.prop(item, "random_prop")
 
 
@@ -381,6 +529,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     attributes = []
 
     geometry_node_objects = []
+    parent_node = None
 
     def __init__(self):
         self.all_objects = bpy.data.objects.items()
@@ -406,6 +555,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         "object_ref": object_ref,
                         "modifier_name": modifier_name,
                         "modifier_ref": modifier_ref, 
+                        "node_group": node_group,
                         "is_parent_node": object_ref.shaderverse.is_parent_node
                     }
                     geometry_node_objects.append(node_object)
@@ -415,14 +565,63 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     collection = []
 
+    def is_item_restriction_found(attributes, restrictions):
+        found = False
+        for attribute in attributes.values():
+            for restriction in restrictions:
+                if restriction == attribute:
+                    found = True
+                return found
+        return found
+
+
+
+        # attributes = {}
+        # for blender_collection in blender_objects:
+        #     attribute_names = []
+        #     attribute_weights = []    
+        #     for blender_object in blender_collection["objects"]:
+        #         exclude = False
+        #         # exclude if it has a restriction that isn't already in the set of attributes
+        #         if (len(blender_object["restrictions"]) > 0) and ( is_item_missing_restrictions(attributes, blender_object["restrictions"])):
+        #             exclude = True
+                
+        #         if not exclude:
+        #             attribute_names.append(blender_object["name"])
+        #             attribute_weights.append(blender_object["weight"])
+
+        #     # select the trait from this collection
+        #     attribute_value = random.choices(attribute_names, weights=tuple(attribute_weights), k=1)
+
+        #     attributes[blender_collection["collection name"]] =  attribute_value[0]
+
+
+
+
+
+
+    def get_object_restrictions(self, obj):
+        restrictions = []
+        for item in obj.shaderverse.restrictions:
+            restrictions.append(item.restriction.name)
+        return restrictions
+
     def select_object_from_collection(self, collection):
         collection_object_names = []
         collection_object_weights = []
         active_geometry_node_objects = []
         
         for obj in collection.objects:
-            collection_object_names.append(obj.name)
-            collection_object_weights.append(obj.shaderverse.weight)
+            restrictions = self.get_object_restrictions(obj)
+
+            # TODO Check this logic works
+            print(self.attributes)
+
+            if (len(restrictions) < 1) or (self.is_item_restriction_found(self.attributes, restrictions)):
+            
+                collection_object_names.append(obj.name)
+                collection_object_weights.append(obj.shaderverse.weight)
+             
         selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
         return bpy.data.objects[selected_object_name]
 
@@ -585,6 +784,19 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         mesh = bpy.data.meshes[mesh_name]
         mesh.update()
 
+    
+
+    def set_parent_node(self):
+        for node_object in self.geometry_node_objects:
+            # update the parent nodes first
+            if node_object["is_parent_node"]:
+                self.parent_node = node_object
+                bpy.context.scene.shaderverse.parent_node.modifier_name = node_object["modifier_name"]
+                bpy.context.scene.shaderverse.parent_node.node_group = node_object["node_group"]
+                object_name = node_object["object_name"]
+                bpy.context.scene.shaderverse.parent_node.object = bpy.data.objects[object_name]
+                
+
     def execute(self, context):
         self.geometry_node_objects = []
         self.collection = []
@@ -598,6 +810,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             object_name = obj[0]
             object_ref = obj[1]
             self.geometry_node_objects += self.find_geometry_nodes(object_ref)
+
+        self.set_parent_node()
 
         for node_object in self.geometry_node_objects:
             # update the parent nodes first
@@ -646,8 +860,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
 
 classes = [
-    SHADERVERSE_PG_dependency_list_item,
+    SHADERVERSE_PG_restrictions_item,
     SHADERVERSE_PG_main,
+    SHADERVERSE_PG_parent_node,
     SHADERVERSE_PG_scene,
     SHADERVERSE_PT_main,
     # SHADERVERSE_PT_object,
@@ -657,11 +872,11 @@ classes = [
     SHADERVERSE_PT_metadata,
     SHADERVERSE_PT_generated_metadata,
     SHADERVERSE_PT_settings,
-    # SHADERVERSE_PT_dependency_list,
-    SHADERVERSE_UL_dependency_list,
-    SHADERVERSE_OT_dependency_list_new_item,
-    SHADERVERSE_OT_dependency_list_delete_item,
-    SHADERVERSE_OT_dependency_list_move_item,
+    SHADERVERSE_PT_restrictions,
+    SHADERVERSE_UL_restrictions,
+    SHADERVERSE_OT_restrictions_new_item,
+    SHADERVERSE_OT_restrictions_delete_item,
+    SHADERVERSE_OT_restrictions_move_item,
     SHADERVERSE_OT_generate
 ]
 
@@ -682,6 +897,7 @@ def register():
     #adds the property group class to the object context (instantiates it)
     bpy.types.Object.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_main)
     bpy.types.Scene.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_scene)
+
 
 
 #same as register but backwards, deleting references
