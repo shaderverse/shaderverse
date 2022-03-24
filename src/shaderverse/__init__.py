@@ -8,6 +8,9 @@ import os
 import typing
 import pkg_resources
 import pathlib
+import threading
+import subprocess
+from . import server
 
 
 bl_info = {
@@ -361,6 +364,7 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
+        
 
 
     def draw_header(self, context):
@@ -430,12 +434,16 @@ class SHADERVERSE_PT_rendering(bpy.types.Panel):
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
+        if not hasattr(context.object, "shaderverse"):
+            return
+
+        this_context = context.object
+
         layout = self.layout 
         split = layout.split(factor=0.1)
         col = split.column()
         col = split.column()
         box = col.box()
-        this_context = context.object
         #add a label to the UI
         # layout.label(text="Weighted chance of choosing this attribute")
         box.prop(this_context.shaderverse, 'render_in_2D', text="Include in 2D Renders")
@@ -454,6 +462,10 @@ class SHADERVERSE_PT_metadata(bpy.types.Panel):
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
+
+        if not hasattr(context.object, "shaderverse"):
+            return
+
         layout = self.layout 
         split = layout.split(factor=0.1)
         col = split.column()
@@ -929,15 +941,72 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 #         row.operator(shaderverse_generate.bl_idname, text=shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
 
 
-class SHADERVERSE_OT_start_server(bpy.types.Operator):
-    """Generate new metadata and NFT preview"""
-    bl_idname = "shaderverse.start_server"
-    bl_label = "Start Server"
-    bl_options = {'REGISTER', 'UNDO'}
+# class SHADERVERSE_OT_start_server(bpy.types.Operator):
+#     """Generate new metadata and NFT preview"""
+#     bl_idname = "shaderverse.start_server"
+#     bl_label = "Start Server"
+#     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context) -> typing.Set[str]:
-        from . import server
-        server.start()
+
+#     def execute(self, context) -> typing.Set[str]:
+#         server.Server.start_threads()
+        
+#         # print("Waiting for threads to finish...")
+
+#         # for t in self.threads:
+#         #     t.join()
+
+#         return {'FINISHED'}
+
+
+class SHADERVERSE_OT_server_manager(bpy.types.Operator):
+    
+    """Generate new metadata and NFT preview"""
+    bl_idname = "shaderverse.start_generator"
+    bl_label = "Server Generator"
+    bl_options = {'REGISTER'}
+
+    process = None
+
+    @classmethod
+    def get_process(self):
+        return self.process
+
+    @classmethod
+    def kill(self):
+        self.process.kill()
+    
+    # def modal(self, context, event):
+    
+    #     # Stop the thread when ESCAPE is pressed.
+    #     if event.type == 'ESC':
+    #         self.process.kill()
+    #         context.window_manager.event_timer_remove(self.timer)
+    #         return {'CANCELLED'}
+    
+    #     # Update the object with the received data.
+    #     if event.type == 'TIMER':
+    #         print("received timer")
+    #         # bpy.data.objects['cube'].location = self.thread.data[:2]
+    #         # bpy.data.objects['cube'].rotation_quaternion = self.thread.data[3:]
+        
+    #     return {'PASS_THROUGH'}
+    
+    def execute(self, context):
+        context = bpy.context
+        # from . import server
+        print("starting server")
+        server.init_fastapi()
+
+
+
+
+        
+
+        print(context.window.id_data)
+    
+        # self.timer = context.window_manager.event_timer_add(time_step=0.05, window=context.window)
+        # context.window_manager.modal_handler_add(self)
         return {'FINISHED'}
 
 classes = [
@@ -961,7 +1030,7 @@ classes = [
     SHADERVERSE_OT_restrictions_delete_item,
     SHADERVERSE_OT_restrictions_move_item,
     SHADERVERSE_OT_generate,
-    SHADERVERSE_OT_start_server,
+    SHADERVERSE_OT_server_manager,
     SHADERVERSE_OT_install_modules
 ]
 
