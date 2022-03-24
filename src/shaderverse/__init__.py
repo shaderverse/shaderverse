@@ -959,54 +959,31 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 #         return {'FINISHED'}
 
 
-class SHADERVERSE_OT_server_manager(bpy.types.Operator):
+class SHADERVERSE_OT_start_generator(bpy.types.Operator):
     
-    """Generate new metadata and NFT preview"""
+    """ Start the shaderverse generator """
     bl_idname = "shaderverse.start_generator"
-    bl_label = "Server Generator"
+    bl_label = "Start Server Generator"
     bl_options = {'REGISTER'}
 
-    process = None
+    def execute(self, context):
+        context = bpy.context
+        print("starting server")
+        server.init_fastapi()
+        return {'FINISHED'}
 
-    @classmethod
-    def get_process(self):
-        return self.process
+class SHADERVERSE_OT_stop_generator(bpy.types.Operator):
+    
+    """ Stop the shaderverse generator """
+    bl_idname = "shaderverse.stop_generator"
+    bl_label = "Stop Server Generator"
+    bl_options = {'REGISTER'}
 
-    @classmethod
-    def kill(self):
-        self.process.kill()
-    
-    # def modal(self, context, event):
-    
-    #     # Stop the thread when ESCAPE is pressed.
-    #     if event.type == 'ESC':
-    #         self.process.kill()
-    #         context.window_manager.event_timer_remove(self.timer)
-    #         return {'CANCELLED'}
-    
-    #     # Update the object with the received data.
-    #     if event.type == 'TIMER':
-    #         print("received timer")
-    #         # bpy.data.objects['cube'].location = self.thread.data[:2]
-    #         # bpy.data.objects['cube'].rotation_quaternion = self.thread.data[3:]
-        
-    #     return {'PASS_THROUGH'}
     
     def execute(self, context):
         context = bpy.context
-        # from . import server
-        print("starting server")
-        server.init_fastapi()
-
-
-
-
-        
-
-        print(context.window.id_data)
-    
-        # self.timer = context.window_manager.event_timer_add(time_step=0.05, window=context.window)
-        # context.window_manager.modal_handler_add(self)
+        print("stopping generator")
+        server.fastapi.stop()
         return {'FINISHED'}
 
 classes = [
@@ -1030,7 +1007,8 @@ classes = [
     SHADERVERSE_OT_restrictions_delete_item,
     SHADERVERSE_OT_restrictions_move_item,
     SHADERVERSE_OT_generate,
-    SHADERVERSE_OT_server_manager,
+    SHADERVERSE_OT_start_generator,
+    SHADERVERSE_OT_stop_generator,
     SHADERVERSE_OT_install_modules
 ]
 
