@@ -2,12 +2,19 @@ import bpy
 import os
 import random
 import json
+import site
+import sys
+import os
+import typing
+import pkg_resources
+import pathlib
+
 
 bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 10),
+  "version": (1, 0, 11),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
@@ -284,9 +291,70 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
 
     enable_post_generation_script: bpy.props.BoolProperty(name="Run Custom Script After Generation", default=False)
     post_generation_script: bpy.props.PointerProperty(name="Post-generation Script", type=bpy.types.Text)
+class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
+    modules_installed: bpy.props.BoolProperty(name="Python Modules Installed", default=False)
+
+class SHADERVERSE_OT_install_modules(bpy.types.Operator):
+    """Install Python modules."""
+    bl_idname = "shaderverse.install_modules"
+    bl_label = "Install Python Module"
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def first_install(self):
+        self.install(self)
 
 
+
+
+    def get_missing_modules(self, required):
+        installed = {pkg.key for pkg in pkg_resources.working_set}
+        print(f"installed: {installed}")
+        return required - installed
+
+
+    def install(self):
+
+        required = {'uvicorn', 'fastapi', 'pydantic'}
+        
+        # missing = self.get_missing_modules(required)
+        print("in install")
+        is_module_installation_complete = bpy.context.preferences.addons["shaderverse"].preferences.modules_installed
+        print(is_module_installation_complete)
+
+        if not is_module_installation_complete: 
+            from . import install_modules
+            try:
+                install_modules.install_modules()
+                bpy.context.preferences.addons["shaderverse"].preferences.modules_installed = True
+            except:
+                raise("Unable to install Python Modules")
+            
+
+    def execute(self, context):
+        self.install()
+
+        return{'FINISHED'}
     
+    
+
+class SHADERVERSE_PT_preferences(bpy.types.AddonPreferences):
+    bl_idname = "shaderverse"
+    modules_installed: bpy.props.BoolProperty(name="Python Modules Installed", default=False)
+
+    def draw(self, context):
+        layout = self.layout
+        if not self.modules_installed:
+            layout = self.layout
+            box = layout.box()
+            row = box.row()
+            row.alert = True
+            # required = {'uvicorn', 'fastapi', 'pydantic'}
+            # missing_modules = get_missing_modules(required)
+            row.label(text=f"Please install missing python modules")
+            row.operator(SHADERVERSE_OT_install_modules.bl_idname, text=SHADERVERSE_OT_install_modules.bl_label)
+
+
 
 class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_label = ""
@@ -411,6 +479,8 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
         shaderverse_generate = SHADERVERSE_OT_generate
 
         layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
+        # TODO draw module
+
 
         # split = layout.split(factor=0.1)
         # col = split.column()
@@ -859,12 +929,25 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 #         row.operator(shaderverse_generate.bl_idname, text=shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
 
 
+class SHADERVERSE_OT_start_server(bpy.types.Operator):
+    """Generate new metadata and NFT preview"""
+    bl_idname = "shaderverse.start_server"
+    bl_label = "Start Server"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context) -> typing.Set[str]:
+        from . import server
+        server.start()
+        return {'FINISHED'}
+
 classes = [
     SHADERVERSE_PG_restrictions_item,
     SHADERVERSE_PG_main,
     SHADERVERSE_PG_parent_node,
     SHADERVERSE_PG_scene,
+    SHADERVERSE_PG_preferences,
     SHADERVERSE_PT_main,
+    SHADERVERSE_PT_preferences,
     # SHADERVERSE_PT_object,
     # SHADERVERSE_PT_modifier,
     SHADERVERSE_PT_rarity,
@@ -877,11 +960,24 @@ classes = [
     SHADERVERSE_OT_restrictions_new_item,
     SHADERVERSE_OT_restrictions_delete_item,
     SHADERVERSE_OT_restrictions_move_item,
-    SHADERVERSE_OT_generate
+    SHADERVERSE_OT_generate,
+    SHADERVERSE_OT_start_server,
+    SHADERVERSE_OT_install_modules
 ]
 
+def handle_adding_sites_to_path():
+    home_path =  pathlib.Path.home()
+    # user_base = os.path.join(home_path, ".shaderverse", "python")
+    # user_site =  os.path.join(user_base, "site-packages")
+    user_base = os.path.realpath(site.USER_BASE)
+    user_site = os.path.realpath(site.USER_SITE)
+
+    sys.path.append(user_base)
+    sys.path.append(user_site)
 
 def register():
+    handle_adding_sites_to_path()
+
     import bpy.utils.previews
     global custom_icons
     custom_icons = bpy.utils.previews.new()
@@ -897,6 +993,8 @@ def register():
     #adds the property group class to the object context (instantiates it)
     bpy.types.Object.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_main)
     bpy.types.Scene.shaderverse = bpy.props.PointerProperty(type=SHADERVERSE_PG_scene)
+
+    SHADERVERSE_OT_install_modules.first_install()
 
 
 
