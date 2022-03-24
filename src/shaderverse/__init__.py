@@ -407,6 +407,10 @@ class SHADERVERSE_PT_rarity(bpy.types.Panel):
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
+
+        if not hasattr(context.object, "shaderverse"):
+            return
+
         layout = self.layout 
         split = layout.split(factor=0.1)
         col = split.column()
