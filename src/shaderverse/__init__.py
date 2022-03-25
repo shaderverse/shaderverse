@@ -5,12 +5,9 @@ import json
 import site
 import sys
 import os
-import typing
 import pkg_resources
 import pathlib
-import threading
-import subprocess
-from . import server
+
 
 
 bl_info = {
@@ -971,6 +968,7 @@ class SHADERVERSE_OT_start_generator(bpy.types.Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
+        from . import server
         context = bpy.context
         print("starting server")
         server.init_fastapi()
@@ -985,6 +983,7 @@ class SHADERVERSE_OT_stop_generator(bpy.types.Operator):
 
     
     def execute(self, context):
+        from . import server
         context = bpy.context
         print("stopping generator")
         server.fastapi.stop()
