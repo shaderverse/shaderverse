@@ -35,7 +35,7 @@ def init_fastapi():
     # fastapi = FastApiProcess()
     # fastapi.start()
     print(bpy.app.version)
-    controller.start()
+    controller.start(blender_binary_path=bpy.app.binary_path,blend_file=bpy.data.filepath )
 
 def kill_fastapi():
     # global fastapi

@@ -11,12 +11,10 @@ from fastapi import FastAPI
 from shaderverse.fastapi.model import File
 from pydantic import Json
 
-BPY_SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
+SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
 app = FastAPI()
 @app.post("/import_fbx")
-
-
 async def import_fbx(file: File):
     # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
 
@@ -26,6 +24,18 @@ async def import_fbx(file: File):
     # I'll leave it to you to figure out how to properly create the file and pass the file path in here....
     bpy.ops.import_scene.fbx("EXEC_DEFAULT", filepath=filename)
     return {"status": "ok"}
+
+
+@app.post("/list_objects")
+async def list_objects():
+    # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
+
+    # params_dict = json.loads(params)
+
+    # Your code depended on bpy here ...
+    # I'll leave it to you to figure out how to properly create the file and pass the file path in here....
+    objects = bpy.data.objects.items()
+    return {"objects": objects}
 
 
 # @app.post("/read_homefile")
@@ -69,8 +79,10 @@ if __name__ == "__main__":
     #                     help='number of workers',
     #                     default=3)
 
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     port = args.port
 
-    uvicorn.run(app= "shaderverse_blender:app", host="0.0.0.0", port=args.port)
+    # uvicorn.run(app="shaderverse_blender:app", app_dir=SCRIPT_PATH, host="0.0.0.0", port=args.port)
+
+    uvicorn.run(app="shaderverse_blender:app", app_dir=SCRIPT_PATH, host="0.0.0.0", port=args.port)

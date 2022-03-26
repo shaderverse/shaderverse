@@ -308,8 +308,14 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
         
         # missing = self.get_missing_modules(required)
         print("in install")
-        is_module_installation_complete = bpy.context.preferences.addons["shaderverse"].preferences.modules_installed
-        print(is_module_installation_complete)
+
+        is_module_installation_complete = False
+
+        try:
+            is_module_installation_complete = bpy.context.preferences.addons["shaderverse"].preferences.modules_installed
+        except:
+            print("Bootstrapping Shaderverse Server Instance")
+            is_module_installation_complete = True
 
         if not is_module_installation_complete: 
             from . import install_modules
