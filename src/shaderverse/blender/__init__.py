@@ -11,7 +11,6 @@ import pathlib
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 
 
-custom_icons = None
 
 
 
@@ -357,13 +356,15 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
     bl_context = "modifier"
+  
         
 
 
     def draw_header(self, context):
         if not hasattr(context.object, "shaderverse"):
             return
-
+        
+        from .. import custom_icons
         layout = self.layout
         # left_padding_percent = .1
         # right_padding_percent = 1 - left_padding_percent
@@ -379,7 +380,7 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
 
         shaderverse_generate = SHADERVERSE_OT_generate
 
-        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
+        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
 
     def draw(self, context):
         pass
@@ -485,12 +486,13 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
+        from .. import custom_icons
         layout = self.layout 
         layout.separator(factor=1.0) 
 
         shaderverse_generate = SHADERVERSE_OT_generate
 
-        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id, emboss=True)
+        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
         # TODO draw module
 
 

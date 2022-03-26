@@ -1,6 +1,5 @@
-from unicodedata import name
 from pydantic import BaseModel, Json
-from typing import Optional
+from typing import Optional, List
 
 class Item(BaseModel):
     name: str
@@ -9,6 +8,13 @@ class Item(BaseModel):
 
 class File(BaseModel):
     filename: str
+
+class Metadata(BaseModel):
+    filename: str
+    object_list: List[tuple] = None
+
+
+
 
 # class Request(BaseModel):
 #     hooks: Optional[str]

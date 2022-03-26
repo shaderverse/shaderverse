@@ -27,6 +27,8 @@ bl_info = {
 import bpy
 from . import blender
 
+custom_icons = None
+
 
 
 classes = [
@@ -60,9 +62,9 @@ def register():
     global custom_icons
     custom_icons = bpy.utils.previews.new()
     addon_path =  os.path.dirname(__file__)
-    icons_dir = os.path.join(addon_path, "icons")
+    icons_dir = os.path.join(addon_path, "blender/icons")
     
-    custom_icons.load("custom_icon", os.path.join(icons_dir, "icon.png"), 'IMAGE')
+    custom_icons.load("shaderverse_icon", os.path.join(icons_dir, "icon.png"), 'IMAGE')
 
 
     for this_class in classes:
