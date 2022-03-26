@@ -350,10 +350,14 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
+    bl_context = "modifier"
         
 
 
     def draw_header(self, context):
+        if not hasattr(context.object, "shaderverse"):
+            return
+
         layout = self.layout
         # left_padding_percent = .1
         # right_padding_percent = 1 - left_padding_percent
