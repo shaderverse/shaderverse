@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 import bpy
-from .fastapi import app as fastapi_app
+from shaderverse.fastapi import controller
 
 
 # class FastApiProcess():
@@ -35,13 +35,13 @@ def init_fastapi():
     # fastapi = FastApiProcess()
     # fastapi.start()
     print(bpy.app.version)
-    fastapi_app.run()
+    controller.start()
 
 def kill_fastapi():
     # global fastapi
     # fastapi = FastApiProcess()
     # fastapi.start()
-    fastapi_app.server.kill()
+    controller.proxy.process.kill()
 
 if __name__ == "__main__":
     init_fastapi()
