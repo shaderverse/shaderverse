@@ -12,7 +12,6 @@ def install_modules():
     # subprocess.run([python_path, "-m", "pip", "install", "--upgrade", "pip",])
     
     result = subprocess.run([python_path, "-m", "pip", "install", *required], capture_output=True)
-    print(result)
 
     
 if __name__ == "__main__":
