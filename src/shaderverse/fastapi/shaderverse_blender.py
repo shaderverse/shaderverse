@@ -18,15 +18,12 @@ app = FastAPI()
 
 @app.post("/generate", response_model=Metadata)
 async def generate():
-
     run_generate_operator = bpy.ops.shaderverse.generate()
 
     generated_metadata: List[Trait] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
-
     metadata = Metadata(
         filename=bpy.data.filepath,traits=generated_metadata)
-
 
     print(metadata)
     return metadata
