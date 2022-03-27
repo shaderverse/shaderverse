@@ -140,13 +140,13 @@ async def perform_action(action: str, session_id: UUID4):
     # params_dict["filename"] = filename
     # params_json = json.dumps(params_dict)
     response = sessions[session_id].run(action)
+    response_dict = response.json()
 
     match action:
         case "generate":
-            print(response)
-            result = Metadata(response)
+            result = Metadata(**response_dict)
         case "glb":
-            result = GlbFile(response)
+            result = GlbFile(**response_dict)
         case _:
             result = {
                 "status": "action not found"  # we return the session ID to the client
