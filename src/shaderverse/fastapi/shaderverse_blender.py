@@ -1,12 +1,8 @@
-
-
 import argparse
 import uvicorn
 import os 
-import sys
 import json
 import bpy
-import shaderverse
 from fastapi import FastAPI
 from shaderverse.fastapi.model import Metadata, Trait
 from pydantic import Json
