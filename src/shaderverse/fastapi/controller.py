@@ -46,7 +46,9 @@ class Proxy():
         self.blend_file = blend_file
         self.port = "8118"  # you don't need to generate this from ID or anything - just make sure the port is valid and unoccupied
         self.script_path = os.path.join(SCRIPT_PATH, "controller.py")
-
+        blender_data = {"blend_file": blend_file, 
+                   "blender_binary_path": blender_binary_path}
+        save_proxy_session(blender_data=blender_data)
 
         # try:
         #     python_command = [sys.executable, self.script_path]
@@ -111,9 +113,8 @@ class BlenderInstance():
 def start(blender_binary_path: str, blend_file: str,):
     global proxy
     proxy = Proxy(blend_file=blend_file, blender_binary_path=blender_binary_path)
-    blender_data = {"blend_file": blend_file, 
-                   "blender_binary_path": blender_binary_path}
-    save_proxy_session(blender_data=blender_data)
+    
+    
 
 
 app = FastAPI()
