@@ -1,6 +1,3 @@
-import os
-import subprocess
-import sys
 import bpy
 from shaderverse.fastapi import controller
 from shaderverse.blender.tunnel import Tunnel
