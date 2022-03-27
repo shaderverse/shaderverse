@@ -3,6 +3,7 @@ import subprocess
 import sys
 import bpy
 from shaderverse.fastapi import controller
+from shaderverse.blender.tunnel import Tunnel
 
 
 # class FastApiProcess():
@@ -30,18 +31,22 @@ from shaderverse.fastapi import controller
 #         self.process.kill()
 #         self.running = False
 
+tunnel: Tunnel
+
 def init_fastapi():
     # global fastapi
     # fastapi = FastApiProcess()
     # fastapi.start()
     print(bpy.app.version)
     controller.start(blender_binary_path=bpy.app.binary_path,blend_file=bpy.data.filepath )
+    tunnel = Tunnel()
 
 def kill_fastapi():
     # global fastapi
     # fastapi = FastApiProcess()
     # fastapi.start()
     controller.proxy.process.kill()
+    tunnel.kill()
 
 if __name__ == "__main__":
     init_fastapi()
