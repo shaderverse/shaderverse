@@ -1,14 +1,6 @@
 from pydantic import BaseModel, Json
 from typing import Optional, List, Set
 
-class Item(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
-
-class File(BaseModel):
-    filename: str
-
 class Trait(BaseModel):
     trait_type: str
     value: str
@@ -16,6 +8,9 @@ class Trait(BaseModel):
 class Metadata(BaseModel):
     filename: str = None
     traits: List[Trait] = None
+
+class GlbFile(BaseModel):
+    buffer: bytes = None
 
 
 

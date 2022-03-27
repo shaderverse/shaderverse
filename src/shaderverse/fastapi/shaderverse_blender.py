@@ -8,7 +8,7 @@ import json
 import bpy
 import shaderverse
 from fastapi import FastAPI
-from shaderverse.fastapi.model import File, Metadata, Trait
+from shaderverse.fastapi.model import Metadata, Trait
 from pydantic import Json
 from typing import List
 
