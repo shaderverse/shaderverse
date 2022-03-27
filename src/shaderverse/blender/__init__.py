@@ -5,7 +5,6 @@ import json
 import site
 import sys
 import os
-import pkg_resources
 import pathlib
 
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
@@ -292,17 +291,7 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
     def first_install(self):
         self.install(self)
 
-
-
-
-    def get_missing_modules(self, required):
-        installed = {pkg.key for pkg in pkg_resources.working_set}
-        print(f"installed: {installed}")
-        return required - installed
-
-
     def install(self):
-
         required = {'uvicorn', 'fastapi', 'pydantic'}
         
         # missing = self.get_missing_modules(required)
