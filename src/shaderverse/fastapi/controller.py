@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from pydantic import UUID4, Json
+from shaderverse.fastapi.model import Metadata, Trait, GlbFile
 import subprocess
 import uuid
 import requests
@@ -132,14 +133,28 @@ async def start_session():
 @app.post("/perform_action/{action}/{session_id}")
 async def perform_action(action: str, session_id: UUID4):
     # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
-
+    print(f"session_id: {session_id}")
+    print(sessions[session_id])
     # params_dict = json.loads(params)
     # params_dict = {}
     # params_dict["filename"] = filename
     # params_json = json.dumps(params_dict)
+    response = sessions[session_id].run(action)
+
+    match action:
+        case "generate":
+            print(response)
+            result = Metadata(response)
+        case "glb":
+            result = GlbFile(response)
+        case _:
+            result = {
+                "status": "action not found"  # we return the session ID to the client
+            }
+    return result
 
     # this should also be made async, see comment in the run method
-    return sessions[session_id].run(action)
+    return 
 
 
 if __name__ == "__main__":
