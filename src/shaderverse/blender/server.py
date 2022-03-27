@@ -5,15 +5,18 @@ from shaderverse.blender.tunnel import Tunnel
 
 proxy: Proxy
 tunnel: Tunnel
+initialized = False
 
 def init_fastapi():
-    global proxy, tunnel
-    print(bpy.app.version)
-    proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
-                    blend_file=bpy.data.filepath)
-    tunnel = Tunnel()
-    preview_url = f"https://shaderverse.com/preview/{tunnel.subdomain}"
-    bpy.context.scene.shaderverse.preview_url = preview_url
+    global initialized, proxy, tunnel
+    if not initialized:
+        print(bpy.app.version)
+        proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
+                        blend_file=bpy.data.filepath)
+        tunnel = Tunnel()
+        preview_url = f"https://shaderverse.com/preview/{tunnel.subdomain}"
+        bpy.context.scene.shaderverse.preview_url = preview_url
+        initialized = True
     try:
         webbrowser.open(preview_url)
     except:
