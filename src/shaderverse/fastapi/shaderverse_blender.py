@@ -5,7 +5,6 @@ import json
 import bpy
 from fastapi import FastAPI
 from shaderverse.fastapi.model import Metadata, Trait
-from pydantic import Json
 from typing import List
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
