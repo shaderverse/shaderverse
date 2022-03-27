@@ -7,7 +7,7 @@ proxy: Proxy
 tunnel: Tunnel
 initialized = False
 
-def init_fastapi():
+def start_live_preview():
     global initialized, proxy, tunnel
     if not initialized:
         proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
@@ -26,4 +26,4 @@ def kill_fastapi():
     tunnel.kill()
 
 if __name__ == "__main__":
-    init_fastapi()
+    start_live_preview()

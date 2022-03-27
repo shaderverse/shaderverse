@@ -952,17 +952,17 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 #         return {'FINISHED'}
 
 
-class SHADERVERSE_OT_start_generator(bpy.types.Operator):
+class SHADERVERSE_OT_start_live_preview(bpy.types.Operator):
     
-    """ Start the shaderverse generator """
-    bl_idname = "shaderverse.start_generator"
-    bl_label = "Start Server Generator"
+    """ Live preview """
+    bl_idname = "shaderverse.live_preview"
+    bl_label = "Live Preview"
     bl_options = {'REGISTER'}
 
     def execute(self, context):
         from . import server
         context = bpy.context
-        server.init_fastapi()
+        server.start_live_preview()
         return {'FINISHED'}
 
 class SHADERVERSE_OT_stop_generator(bpy.types.Operator):
