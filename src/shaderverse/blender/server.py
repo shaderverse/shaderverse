@@ -5,6 +5,7 @@ from shaderverse.blender.tunnel import Tunnel
 tunnel: Tunnel
 
 def init_fastapi():
+    global tunnel
     print(bpy.app.version)
     controller.start(blender_binary_path=bpy.app.binary_path,blend_file=bpy.data.filepath )
     tunnel = Tunnel()
