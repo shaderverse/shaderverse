@@ -1,3 +1,4 @@
+import webbrowser
 import bpy
 from shaderverse.fastapi import controller
 from shaderverse.blender.tunnel import Tunnel
@@ -11,8 +12,10 @@ def init_fastapi():
     tunnel = Tunnel()
     preview_url = f"https://shaderverse.com/preview/{tunnel.subdomain}"
     bpy.context.scene.shaderverse.preview_url = preview_url
-    # TODO write preview url to scene
-    # TODO open preview url
+    try:
+        webbrowser.open(preview_url)
+    except:
+        print(f"Unable to open {preview_url}")
 
 def kill_fastapi():
     controller.proxy.process.kill()
