@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Json
-from typing import Optional, List
+from typing import Optional, List, Set
 
 class Item(BaseModel):
     name: str
@@ -9,9 +9,13 @@ class Item(BaseModel):
 class File(BaseModel):
     filename: str
 
+class Trait(BaseModel):
+    trait_type: str
+    value: str
+
 class Metadata(BaseModel):
-    filename: str
-    object_list: List[tuple] = None
+    filename: str = None
+    traits: List[Trait] = None
 
 
 

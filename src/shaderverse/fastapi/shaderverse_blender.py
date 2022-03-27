@@ -8,8 +8,9 @@ import json
 import bpy
 import shaderverse
 from fastapi import FastAPI
-from shaderverse.fastapi.model import File, Metadata
+from shaderverse.fastapi.model import File, Metadata, Trait
 from pydantic import Json
+from typing import List
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
@@ -28,18 +29,16 @@ async def import_fbx(file: File):
 
 @app.post("/generate", response_model=Metadata)
 async def generate():
-    # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
 
-    # params_dict = json.loads(params)
+    generated_metadata: List[Trait] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
-    # Your code depended on bpy here ...
-    # I'll leave it to you to figure out how to properly create the file and pass the file path in here....
+
     metadata = Metadata(
-        filename=bpy.data.filepath, 
-        object_list=bpy.data.objects.items())
+        filename=bpy.data.filepath,traits=generated_metadata)
+
 
     print(metadata)
-    return {metadata}
+    return metadata
 
 
 # @app.post("/read_homefile")
