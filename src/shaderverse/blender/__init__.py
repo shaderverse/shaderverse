@@ -598,7 +598,7 @@ class SHADERVERSE_PT_restrictions(bpy.types.Panel):
 class SHADERVERSE_OT_generate(bpy.types.Operator):
     """Generate new metadata and NFT preview"""
     bl_idname = "shaderverse.generate"
-    bl_label = "Generate NFT Preview"
+    bl_label = "Generate NFT"
     bl_options = {'REGISTER', 'UNDO'}
 
     def generate_random_range(self, item_ref, precision):
@@ -966,7 +966,7 @@ class SHADERVERSE_OT_live_preview(bpy.types.Operator):
     
     """ Live preview """
     bl_idname = "shaderverse.live_preview"
-    bl_label = "Live Preview"
+    bl_label = "Live Web Preview"
     bl_options = {'REGISTER'}
 
     def execute(self, context):
