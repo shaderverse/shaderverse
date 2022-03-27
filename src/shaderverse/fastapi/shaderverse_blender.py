@@ -15,20 +15,11 @@ from typing import List
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
 app = FastAPI()
-@app.post("/import_fbx")
-async def import_fbx(file: File):
-    # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
-
-    # params_dict = json.loads(params)
-    filename = file.filename
-    # Your code depended on bpy here ...
-    # I'll leave it to you to figure out how to properly create the file and pass the file path in here....
-    bpy.ops.import_scene.fbx("EXEC_DEFAULT", filepath=filename)
-    return {"status": "ok"}
-
 
 @app.post("/generate", response_model=Metadata)
 async def generate():
+
+    run_generate_operator = bpy.ops.shaderverse.generate()
 
     generated_metadata: List[Trait] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
