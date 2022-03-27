@@ -278,7 +278,7 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
 
     enable_post_generation_script: bpy.props.BoolProperty(name="Run Custom Script After Generation", default=False)
     post_generation_script: bpy.props.PointerProperty(name="Post-generation Script", type=bpy.types.Text)
-        
+
     preview_url: bpy.props.StringProperty(name="Shaderverse preview url")
 class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
     modules_installed: bpy.props.BoolProperty(name="Python Modules Installed", default=False)
@@ -962,7 +962,6 @@ class SHADERVERSE_OT_start_generator(bpy.types.Operator):
     def execute(self, context):
         from . import server
         context = bpy.context
-        print("starting server")
         server.init_fastapi()
         return {'FINISHED'}
 

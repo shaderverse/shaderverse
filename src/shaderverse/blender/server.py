@@ -10,7 +10,6 @@ initialized = False
 def init_fastapi():
     global initialized, proxy, tunnel
     if not initialized:
-        print(bpy.app.version)
         proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
                         blend_file=bpy.data.filepath)
         tunnel = Tunnel()
