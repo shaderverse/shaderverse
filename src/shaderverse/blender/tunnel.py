@@ -10,7 +10,7 @@ class Tunnel():
         self.process = ngrok.connect(8118, "http")
         self.subdomain = self.get_subdomain(self.process.public_url)
         self.alive = True
-        print(self.subdomain)
+        print(f"Started tunnel: {self.subdomain}")
 
     def get_subdomain(self, uri: str)-> str:
         """ Get subdomain from public ngrok url """
@@ -22,6 +22,7 @@ class Tunnel():
         """ Kill all ngrok processes """
         ngrok.kill()
         self.alive = False
+        print(f"Started tunnel: {self.subdomain}")
 
 
 def start():
