@@ -18,9 +18,9 @@ def init_fastapi():
         bpy.context.scene.shaderverse.preview_url = preview_url
         initialized = True
     try:
-        webbrowser.open(preview_url)
+        webbrowser.open(bpy.context.scene.shaderverse.preview_url)
     except:
-        print(f"Unable to open {preview_url}")
+        print(f"Unable to open preview url")
 
 def kill_fastapi():
     proxy.process.kill()
