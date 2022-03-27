@@ -1,7 +1,6 @@
 import os
 import sys
 import site
-import json
 
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 BPY_USER_BASE = site.USER_BASE
