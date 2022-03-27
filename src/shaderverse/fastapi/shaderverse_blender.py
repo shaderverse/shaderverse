@@ -70,10 +70,11 @@ async def generate():
     # Get a string from binary file
     d = f.read()
     # print(d)
+    encoded_bytes = base64.urlsafe_b64encode(d)
 
 
     # glb_bytes = base64.urlsafe_b64encode(glb_bytes)
-    glb = GlbFile(buffer=f)
+    glb = GlbFile(buffer=encoded_bytes)
 
 
     return glb
