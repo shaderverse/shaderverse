@@ -485,7 +485,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
 
         layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
 
-        shaderverse_live_preview = SHADERVERSE_OT_start_live_preview
+        shaderverse_live_preview = SHADERVERSE_OT_live_preview
 
         layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
 
@@ -962,7 +962,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 #         return {'FINISHED'}
 
 
-class SHADERVERSE_OT_start_live_preview(bpy.types.Operator):
+class SHADERVERSE_OT_live_preview(bpy.types.Operator):
     
     """ Live preview """
     bl_idname = "shaderverse.live_preview"
