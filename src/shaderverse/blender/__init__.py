@@ -617,6 +617,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     parent_node = None
 
     def __init__(self):
+        # run a custom script before intialization
+        if bpy.context.scene.shaderverse.pre_generation_script and bpy.context.scene.shaderverse.enable_pre_generation_script:
+            exec(compile(bpy.context.scene.shaderverse.pre_generation_script.as_string(), 'textblock', 'exec'))
         self.all_objects = bpy.data.objects.items()
 
 
@@ -887,9 +890,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         self.collection = []
         self.attributes = []
 
-        # run a custom script before generation
-        if bpy.context.scene.shaderverse.pre_generation_script and bpy.context.scene.shaderverse.enable_pre_generation_script:
-            exec(compile(bpy.context.scene.shaderverse.pre_generation_script.as_string(), 'textblock', 'exec'))
 
         for obj in self.all_objects:
             object_name = obj[0]
