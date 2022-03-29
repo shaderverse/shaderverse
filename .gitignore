@@ -1,0 +1,14 @@
+json/
+csv/
+**/rendered
+**/node_modules/
+.env
+**/ipfs
+**/deployed
+Thumbs.db
+**/__pycache__/
+*.zip
+rendered/
+**/dist
+*.glb
+*.usdz
