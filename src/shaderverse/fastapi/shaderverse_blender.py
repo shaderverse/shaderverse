@@ -51,7 +51,7 @@ def get_export_materials_option()-> str:
         option = "NONE"
     return option
 
-def render_glb(object_name: str, glb_filename: str, export_materials: str):
+def render_glb(glb_filename: str):
     # reset_scene()
     # parent_object = bpy.data.objects[object_name]
     # # object_children = parent_object.children
@@ -61,20 +61,22 @@ def render_glb(object_name: str, glb_filename: str, export_materials: str):
     # # set_objects_to_active(object_list)
     export_materials = get_export_materials_option()
 
-    bpy.ops.export_scene.gltf(filepath=glb_filename, check_existing=False, export_format='GLB', ui_tab='GENERAL', export_copyright='', export_image_format='JPEG', export_texcoords=True, export_normals=True, export_draco_mesh_compression_enable=False, export_tangents=False, export_materials=export_materials, export_colors=True, use_mesh_edges=False, use_mesh_vertices=False, export_cameras=False, export_selected=False, use_selection=False, use_visible=True, use_renderable=False, use_active_collection=False, export_extras=False, export_yup=True, export_apply=True, export_animations=True, export_frame_range=True, export_frame_step=1, export_force_sampling=True, export_nla_strips=True, export_def_bones=False, export_current_frame=False, export_skins=True, export_all_influences=False, export_morph=True, export_morph_normal=True, export_morph_tangent=False, export_lights=False, export_displacement=False, will_save_settings=True, filter_glob='*.glb;*.gltf')
+    bpy.ops.export_scene.gltf(filepath=glb_filename, check_existing=False, export_format='GLB', ui_tab='GENERAL', export_copyright='', export_image_format='JPEG', export_texcoords=True, export_normals=True, export_draco_mesh_compression_enable=False, export_tangents=False, export_materials=export_materials, export_colors=True, use_mesh_edges=False, use_mesh_vertices=False, export_cameras=False, export_selected=False, use_selection=False, use_visible=True, use_renderable=True, use_active_collection=False, export_extras=False, export_yup=True, export_apply=True, export_animations=True, export_frame_range=True, export_frame_step=1, export_force_sampling=True, export_nla_strips=False, export_def_bones=False, export_current_frame=False, export_skins=True, export_all_influences=False, export_morph=False, export_morph_normal=True, export_morph_tangent=False, export_lights=False, export_displacement=False, will_save_settings=True, filter_glob='*.glb;*.gltf')
 
 
 @app.post("/glb", response_model=GlbFile)
 async def generate():
-    object_to_render = get_parent_node()
+    # object_to_render = get_parent_node()
     # glb_temp_file = tempfile.NamedTemporaryFile()
 
     temp_dir_name = tempfile.mkdtemp(prefix='shaderverse_')
     temp_file_name = f"{next(tempfile._get_candidate_names())}.glb"
     glb_temp_file_name = os.path.join(temp_dir_name,temp_file_name)
-    render_glb(object_to_render.name, glb_temp_file_name)
+    render_glb(glb_temp_file_name)
 
     print(glb_temp_file_name)
+    
+    print("In update")
     # Open binary file for reading
     f = open(glb_temp_file_name, 'rb')
 
