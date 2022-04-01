@@ -301,7 +301,6 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
         required = {'uvicorn', 'fastapi', 'pydantic'}
         
         # missing = self.get_missing_modules(required)
-        print("in install")
 
         is_module_installation_complete = False
 
