@@ -32,7 +32,5 @@ Shaderverse is an open-source add-on for vistual artists to make 3D NFT collecti
 
 GPL3
 
-**Made with Love by Shaderverse**
-   [Twitter]: [@shaderverse](https://twitter.com/shaderverse)
-   [Web]:  [shaderverse.com](https://shaderverse.com)
+**Made with Love by [Shaderverse](https://shaderverse.com)**
 
