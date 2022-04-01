@@ -2,8 +2,10 @@
 ## _The NFT Generator for Blender_
 
 
-
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://app.travis-ci.com/github/shaderverse/shaderverse)
+
+![Shaderverse Demo](./.github/images/harmony-blue-apes.png)
+
 
 Shaderverse is an open-source add-on for Blender Artists to make 3D NFT collections without coding
 
