@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://app.travis-ci.com/github/shaderverse/shaderverse)
 
-![Shaderverse Demo](./.github/images/harmony-blue-apes.png)
+![Shaderverse Demo](./.github/images/harmony-blue-apes.jpg)
 
 
 Shaderverse is an open-source add-on for Blender Artists to make 3D NFT collections without coding
@@ -18,10 +18,6 @@ Shaderverse is an open-source add-on for Blender Artists to make 3D NFT collecti
 - Generate NFT assets and metadata using the Blender UI
 - Use either hand-made meshes or parametrically modeled meshes with Blender Geometry Nodes
 - No coding required
-
-## Getting Started
-
-- [Watch our crash course tutorial](https://twitter.com/shaderverse/status/1508949276675637248?s=20&t=kjYfoS_B9vPkHvDjkkQacw)
 
 
 ## Requirements
