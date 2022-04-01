@@ -11,18 +11,18 @@ if __name__ == "__main__":
     output_filename = F"shaderverse-{plugin_version}"
 
     # build
+    shutil.copytree("shaderverse", "dist/shaderverse", symlinks=True,
+                        ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
 
+    shutil.make_archive(output_filename, 'zip', "dist")
+
+    # cleanup
     try:
         shutil.rmtree("dist")
     except:
         print("No dist directory to delete")
     
-    shutil.copytree("shaderverse", "dist/shaderverse", symlinks=True,
-                        ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
 
-    shutil.make_archive(output_filename, 'zip', "dist")
-    
-
-    print(output_filename)
+    print(f"Built {output_filename}.zip")
 
 
