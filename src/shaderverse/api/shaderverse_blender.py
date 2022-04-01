@@ -5,7 +5,7 @@ import os
 import json
 import bpy
 from fastapi import FastAPI, File
-from shaderverse.fastapi.model import Metadata, Trait, GlbFile
+from shaderverse.api.model import Metadata, Trait, GlbFile
 from typing import List
 import tempfile
 import base64

@@ -1,6 +1,6 @@
 import webbrowser
 import bpy
-from shaderverse.fastapi.controller import Proxy
+from shaderverse.api.controller import Proxy
 from shaderverse.blender.tunnel import Tunnel
 
 proxy: Proxy

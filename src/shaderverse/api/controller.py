@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from pydantic import UUID4, Json
-from shaderverse.fastapi.model import Metadata, Trait, GlbFile
+from shaderverse.api.model import Metadata, Trait, GlbFile
 import subprocess
 import uuid
 import requests
