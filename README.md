@@ -24,7 +24,7 @@ Shaderverse is an open-source add-on for vistual artists to make 3D NFT collecti
 
 
 ## Requirements
-- Blender > 3.0 [[Download Link]](https://www.blender.org/DOWNLOAD/) 
+- Blender >= 3.1 [[Download Link]](https://www.blender.org/DOWNLOAD/) 
 
 
 
