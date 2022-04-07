@@ -2,7 +2,7 @@
 ## _The NFT Generator for Blender_
 
 
-[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://app.travis-ci.com/github/shaderverse/shaderverse)  [![](https://img.shields.io/twitter/follow/shaderverse?style=social)](https://twitter.com/shaderverse)
+[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://app.travis-ci.com/github/shaderverse/shaderverse) [![Discord Server](https://img.shields.io/discord/883779420723249152?label=discord&logo=discord&logoColor=white)](https://discord.gg/QJwddbDabF)  [![](https://img.shields.io/twitter/follow/shaderverse?style=social)](https://twitter.com/shaderverse)
 
 ![Shaderverse Demo](./.github/images/harmony-blue-apes.jpg)
 
