@@ -6,7 +6,7 @@ import site
 import sys
 import os
 import pathlib
-from shaderverse.nft import NFT
+from ..nft import NFT
 
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 
