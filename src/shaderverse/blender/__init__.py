@@ -128,8 +128,8 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
 
-    restriction_int: bpy.props.FloatProperty(
-        name="Float",
+    restriction_int: bpy.props.IntProperty(
+        name="Int",
         description="Only make this object available for selection if one of the collection in this list have been selected"
     )
 
