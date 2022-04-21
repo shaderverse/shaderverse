@@ -709,8 +709,13 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         
         for child_collection in collection.children:
             obj = child_collection.objects[0]
-            collection_objects.append({"object_name": obj.name, "collection_name": child_collection.name})
-            collection_object_weights.append(obj.shaderverse.weight)
+
+            restrictions = obj.shaderverse.restrictions
+
+            if (len(restrictions) < 1) or (self.is_item_restriction_found(restrictions)):
+
+                collection_objects.append({"object_name": obj.name, "collection_name": child_collection.name})
+                collection_object_weights.append(obj.shaderverse.weight)
         
         collection_object_names = [d['object_name'] for d in collection_objects]
         selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
