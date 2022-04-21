@@ -619,6 +619,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     geometry_node_objects = []
     parent_node = None
+    node_group_attributes = {}
 
     def __init__(self):
         # run a custom script before intialization
@@ -657,46 +658,33 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     collection = []
 
-    def is_item_restriction_found(attributes, restrictions):
-        found = False
-        for attribute in attributes.values():
-            for restriction in restrictions:
-                if restriction == attribute:
-                    found = True
-                return found
-        return found
-
-
-
-        # attributes = {}
-        # for blender_collection in blender_objects:
-        #     attribute_names = []
-        #     attribute_weights = []    
-        #     for blender_object in blender_collection["objects"]:
-        #         exclude = False
-        #         # exclude if it has a restriction that isn't already in the set of attributes
-        #         if (len(blender_object["restrictions"]) > 0) and ( is_item_missing_restrictions(attributes, blender_object["restrictions"])):
-        #             exclude = True
-                
-        #         if not exclude:
-        #             attribute_names.append(blender_object["name"])
-        #             attribute_weights.append(blender_object["weight"])
-
-        #     # select the trait from this collection
-        #     attribute_value = random.choices(attribute_names, weights=tuple(attribute_weights), k=1)
-
-        #     attributes[blender_collection["collection name"]] =  attribute_value[0]
-
-
-
-
-
-
-    def get_object_restrictions(self, obj):
-        restrictions = []
-        for item in obj.shaderverse.restrictions:
-            restrictions.append(item.restriction.name)
-        return restrictions
+    def is_item_restriction_found(self, restrictions):
+        attributes = self.node_group_attributes["attributes"]
+        found = []
+        for restriction in restrictions:
+            found_restriction = False
+            restriction_data = {
+                    "trait": restriction.trait,
+                    "value": restriction.get_active_field()
+                }
+            match restriction.get_active_condition():
+                case '==':
+                    if attributes[restriction_data["trait"]] == restriction_data["value"]:
+                        found_restriction = True
+                case '!=':
+                    if attributes[restriction_data["trait"]] == restriction_data["value"]:
+                        found_restriction = False
+                case '>':
+                    if attributes[restriction_data["trait"]] > restriction_data["value"]:
+                        found_restriction = True
+                case '<':
+                    if attributes[restriction_data["trait"]] < restriction_data["value"]:
+                        found_restriction = True
+            found.append(found_restriction)
+        for val in found:
+            if val: 
+                return True
+        return False
 
     def select_object_from_collection(self, collection):
         collection_object_names = []
@@ -704,12 +692,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         active_geometry_node_objects = []
         
         for obj in collection.objects:
-            restrictions = self.get_object_restrictions(obj)
+            restrictions = obj.shaderverse.restrictions
 
-            # TODO Check this logic works
-            print(self.attributes)
-
-            if (len(restrictions) < 1) or (self.is_item_restriction_found(self.attributes, restrictions)):
+            if (len(restrictions) < 1) or (self.is_item_restriction_found(restrictions)):
             
                 collection_object_names.append(obj.name)
                 collection_object_weights.append(obj.shaderverse.weight)
@@ -742,7 +727,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         object_ref = bpy.data.objects[object_name]
     
 
-        node_group_attributes = { 
+        self.node_group_attributes = { 
             "node_group_name": node_group_name,
             "object_name": object_name,
             "is_parent_node": object_ref.shaderverse.is_parent_node,
@@ -754,6 +739,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             item_name = item[0]
             item_ref = item[1]
             
+            print(node_group)
+
             item_type = item_ref.type
             item_input_id = item_ref.identifier 
             parent_attribute_value  = None
@@ -776,13 +763,13 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     precision = 0.01
                     generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
                     modifier[item_input_id] = generated_value
-                    node_group_attributes["attributes"][item_name] = generated_value
+                    self.node_group_attributes["attributes"][item_name] = generated_value
 
                 if item_type == "INT":
                     precision = 1
                     generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
                     modifier[item_input_id] = generated_value
-                    node_group_attributes["attributes"][item_name] = generated_value
+                    self.node_group_attributes["attributes"][item_name] = generated_value
                     
                 if item_type == "MATERIAL":
                     # look for a collection with the same name of the material input
@@ -793,24 +780,24 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         selected_material = parent_attribute_value if parent_attribute_value else bpy.data.materials[selected_material_name]
                         if selected_material:
                             modifier[item_input_id] = selected_material
-                            node_group_attributes["attributes"][item_name] = selected_material.id_data
+                            self.node_group_attributes["attributes"][item_name] = selected_material.id_data
 
                 if item_type == "OBJECT":
                     object_collection = bpy.data.collections[item_name]
                     if object_collection:
                         selected_object = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
                         modifier[item_input_id] = selected_object
-                        node_group_attributes["attributes"][item_name] = selected_object.id_data
+                        self.node_group_attributes["attributes"][item_name] = selected_object.id_data
                 
                 if item_type == "COLLECTION":
                     object_collection = bpy.data.collections[item_name]
                     if object_collection:
                         selected_object = parent_attribute_value if parent_attribute_value else self.select_collection_based_on_object(collection=object_collection)
                         modifier[item_input_id] = selected_object
-                        node_group_attributes["attributes"][item_name] = selected_object.id_data
+                        self.node_group_attributes["attributes"][item_name] = selected_object.id_data
                         
         if not parent_attribute_value:
-            self.collection.append(node_group_attributes)
+            self.collection.append(self.node_group_attributes)
 
 
 
