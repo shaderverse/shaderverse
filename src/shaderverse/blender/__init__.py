@@ -598,6 +598,23 @@ class SHADERVERSE_PT_restrictions(bpy.types.Panel):
             # row.prop(item, "random_prop")
 
 
+class SHADERVERSE_OT_realize(bpy.types.Operator):
+    """Realize Geonode"""
+    bl_idname = "shaderverse.realize"
+    bl_label = "Realize Geonode"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        parent_node_object = context.scene.shaderverse.parent_node.object
+        parent_node_object.hide_set(False)
+        bpy.context.view_layer.objects.active = parent_node_object
+        parent_node_object.select_set(True)
+        bpy.ops.object.duplicates_make_real()
+        bpy.ops.object.convert(target='MESH')
+
+        return {'FINISHED'}
+
+
 
 class SHADERVERSE_OT_generate(bpy.types.Operator):
     """Generate new metadata and NFT preview"""

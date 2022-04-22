@@ -49,6 +49,7 @@ classes = [
     blender.SHADERVERSE_OT_restrictions_delete_item,
     blender.SHADERVERSE_OT_restrictions_move_item,
     blender.SHADERVERSE_OT_generate,
+    blender.SHADERVERSE_OT_realize,
     blender.SHADERVERSE_OT_live_preview,
     blender.SHADERVERSE_OT_stop_generator,
     blender.SHADERVERSE_OT_install_modules
