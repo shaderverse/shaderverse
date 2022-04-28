@@ -689,8 +689,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     if attributes[restriction_data["trait"]] == restriction_data["value"]:
                         found_restriction = True
                 case '!=':
-                    if attributes[restriction_data["trait"]] == restriction_data["value"]:
-                        found_restriction = False
+                    if attributes[restriction_data["trait"]] != restriction_data["value"]:
+                        found_restriction = True
                 case '>':
                     if attributes[restriction_data["trait"]] > restriction_data["value"]:
                         found_restriction = True
