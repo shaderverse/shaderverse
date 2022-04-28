@@ -697,6 +697,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 case '<':
                     if attributes[restriction_data["trait"]] < restriction_data["value"]:
                         found_restriction = True
+            
             found.append(found_restriction)
         for val in found:
             if val: 
@@ -715,8 +716,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             
                 collection_object_names.append(obj.name)
                 collection_object_weights.append(obj.shaderverse.weight)
-            
-        selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
+
+        try:    
+            selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
+        except IndexError as error:
+            raise Exception(f"{error}: Could not find at least one valid object in {collection.name}")
         return bpy.data.objects[selected_object_name]
 
 
