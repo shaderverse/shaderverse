@@ -650,8 +650,10 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         geometry_node_objects = []
         object_name = object_ref.name
 
-
+        try:
         object_modifiers = object_ref.modifiers.items()
+        except AttributeError as error:
+            raise Exception(f"{error}: for {object_name}")
 
         for modifier in object_modifiers:
             modifier_name = modifier[0]
