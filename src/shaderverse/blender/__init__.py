@@ -799,7 +799,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     
                 if item_type == "MATERIAL":
                     # look for a collection with the same name of the material input
+                    try:
                     material_collection = bpy.data.collections[item_name]
+                    except KeyError as error:
+                        raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
+
                     if material_collection:
                         selected_object = self.select_object_from_collection(collection=material_collection)
                         selected_material_name = selected_object.material_slots[0].name
@@ -809,14 +813,22 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                             self.node_group_attributes["attributes"][item_name] = selected_material.id_data
 
                 if item_type == "OBJECT":
+                    try:
                     object_collection = bpy.data.collections[item_name]
+                    except KeyError as error:
+                        raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
+
                     if object_collection:
                         selected_object = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
                         modifier[item_input_id] = selected_object
                         self.node_group_attributes["attributes"][item_name] = selected_object.id_data
                 
                 if item_type == "COLLECTION":
+                    try:
                     object_collection = bpy.data.collections[item_name]
+                    except KeyError as error:
+                        raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
+
                     if object_collection:
                         selected_object = parent_attribute_value if parent_attribute_value else self.select_collection_based_on_object(collection=object_collection)
                         modifier[item_input_id] = selected_object
