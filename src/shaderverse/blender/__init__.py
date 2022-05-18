@@ -661,6 +661,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             if hasattr(modifier_ref, "node_group"):
                 node_group = modifier_ref.node_group
             
+                try:
                 if node_group.type == "GEOMETRY":
                     node_object = {
                         "object_name": object_name,
@@ -671,6 +672,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         "is_parent_node": object_ref.shaderverse.is_parent_node
                     }
                     geometry_node_objects.append(node_object)
+                except AttributeError as error:
+                    raise Exception(f"{error}: Could not find a Node Group type in object: {object_name}. Did you add an empty geometry node modifier?")
+
         return geometry_node_objects
 
 
