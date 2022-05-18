@@ -651,7 +651,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         object_name = object_ref.name
 
         try:
-        object_modifiers = object_ref.modifiers.items()
+            object_modifiers = object_ref.modifiers.items()
         except AttributeError as error:
             raise Exception(f"{error}: for {object_name}")
 
@@ -660,18 +660,18 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             modifier_ref = modifier[1]
             if hasattr(modifier_ref, "node_group"):
                 node_group = modifier_ref.node_group
-            
+
                 try:
-                if node_group.type == "GEOMETRY":
-                    node_object = {
-                        "object_name": object_name,
-                        "object_ref": object_ref,
-                        "modifier_name": modifier_name,
-                        "modifier_ref": modifier_ref, 
-                        "node_group": node_group,
-                        "is_parent_node": object_ref.shaderverse.is_parent_node
-                    }
-                    geometry_node_objects.append(node_object)
+                    if node_group.type == "GEOMETRY":
+                        node_object = {
+                            "object_name": object_name,
+                            "object_ref": object_ref,
+                            "modifier_name": modifier_name,
+                            "modifier_ref": modifier_ref, 
+                            "node_group": node_group,
+                            "is_parent_node": object_ref.shaderverse.is_parent_node
+                        }
+                        geometry_node_objects.append(node_object)
                 except AttributeError as error:
                     raise Exception(f"{error}: Could not find a Node Group type in object: {object_name}. Did you add an empty geometry node modifier?")
 
@@ -806,7 +806,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 if item_type == "MATERIAL":
                     # look for a collection with the same name of the material input
                     try:
-                    material_collection = bpy.data.collections[item_name]
+                        material_collection = bpy.data.collections[item_name]
                     except KeyError as error:
                         raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
@@ -820,7 +820,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
                 if item_type == "OBJECT":
                     try:
-                    object_collection = bpy.data.collections[item_name]
+                        object_collection = bpy.data.collections[item_name]
                     except KeyError as error:
                         raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
@@ -831,7 +831,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 
                 if item_type == "COLLECTION":
                     try:
-                    object_collection = bpy.data.collections[item_name]
+                        object_collection = bpy.data.collections[item_name]
                     except KeyError as error:
                         raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
