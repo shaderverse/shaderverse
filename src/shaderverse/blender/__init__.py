@@ -471,7 +471,6 @@ class SHADERVERSE_PT_metadata(bpy.types.Panel):
         box = col.box()
         this_context = context.object
 
-        box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
 
 class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
