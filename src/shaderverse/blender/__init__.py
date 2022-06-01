@@ -273,6 +273,8 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
 
     parent_node: bpy.props.PointerProperty(type=SHADERVERSE_PG_parent_node)
+
+    main_geonodes_object: bpy.props.PointerProperty(type=bpy.types.Object, name="Main Geometry Nodes Object")
     
     enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
     pre_generation_script: bpy.props.PointerProperty(name="Pre-generation Script", type=bpy.types.Text)
@@ -541,6 +543,14 @@ class SHADERVERSE_PT_settings(bpy.types.Panel):
         grid_flow = row.grid_flow(columns=1, even_columns=True, row_major=True)
         col = grid_flow.column()
         this_context = bpy.context.scene
+
+
+        # parent_node: bpy.props.PointerProperty(type=SHADERVERSE_PG_parent_node)
+
+        box = col.box()
+        box.prop(this_context.shaderverse, 'main_geonodes_object')
+
+
         
         col.prop(this_context.shaderverse, 'enable_pre_generation_script')
 
@@ -605,7 +615,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        parent_node_object = context.scene.shaderverse.parent_node.object
+        parent_node_object = context.scene.shaderverse.main_geonodes_object
         parent_node_object.hide_set(False)
         bpy.context.view_layer.objects.active = parent_node_object
         parent_node_object.select_set(True)
@@ -669,7 +679,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                             "modifier_name": modifier_name,
                             "modifier_ref": modifier_ref, 
                             "node_group": node_group,
-                            "is_parent_node": object_ref.shaderverse.is_parent_node
+                            "is_parent_node": self.is_parent_node(current_node_object_name=object_name)
                         }
                         geometry_node_objects.append(node_object)
                 except AttributeError as error:
@@ -748,6 +758,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
         selected_collection_name = next(item["collection_name"] for item in collection_objects if item["object_name"] == selected_object_name)
         return bpy.data.collections[selected_collection_name]
+
+    def is_parent_node(self, current_node_object_name):
+        return current_node_object_name == bpy.context.scene.shaderverse.main_geonodes_object.name
 
 
     def generate_metadata(self, node_object):
