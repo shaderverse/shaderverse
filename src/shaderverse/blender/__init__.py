@@ -1028,7 +1028,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         # run a custom script after generation
         if bpy.context.scene.shaderverse.post_generation_script and bpy.context.scene.shaderverse.enable_post_generation_script:
             exec(compile(bpy.context.scene.shaderverse.post_generation_script.as_string(), 'textblock', 'exec'))
-
+        
+        self.make_animated_objects_visible()
 
         return {'FINISHED'}
 
