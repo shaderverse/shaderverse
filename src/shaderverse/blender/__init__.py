@@ -673,6 +673,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             exec(compile(bpy.context.scene.shaderverse.pre_generation_script.as_string(), 'textblock', 'exec'))
         self.all_objects = bpy.data.objects.items()
         self.create_animated_objects_collection()
+        self.reset_animated_objects()
 
     def find_geometry_nodes(self, object_ref):
 
