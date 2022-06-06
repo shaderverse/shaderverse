@@ -263,6 +263,11 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     #builting string (variable)property
     metadata_prefix: bpy.props.StringProperty(name='Prefix')
 
+    def get_trait_value(self):
+        current_name = self.id_data.name
+        prefix = self.metadata_prefix
+        return current_name.replace(prefix, "").strip()
+
 class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
     modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
     node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
@@ -470,6 +475,11 @@ class SHADERVERSE_PT_metadata(bpy.types.Panel):
         col = split.column()
         box = col.box()
         this_context = context.object
+        row1 = box.row()
+        row1.prop(this_context.shaderverse, 'metadata_prefix')
+        row2 = box.row()
+        row2.label(text=f"Trait Value: {this_context.shaderverse.get_trait_value()}")
+        row2.enabled = False
 
 
 class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):

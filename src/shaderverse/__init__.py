@@ -40,7 +40,7 @@ classes = [
     blender.SHADERVERSE_PT_preferences,
     blender.SHADERVERSE_PT_rarity,
     blender.SHADERVERSE_PT_rendering,
-    # blender.SHADERVERSE_PT_metadata,
+    blender.SHADERVERSE_PT_metadata,
     blender.SHADERVERSE_PT_generated_metadata,
     blender.SHADERVERSE_PT_settings,
     blender.SHADERVERSE_PT_restrictions,
