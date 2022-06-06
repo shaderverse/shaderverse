@@ -872,6 +872,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         selected_object = parent_attribute_value if parent_attribute_value else self.select_collection_based_on_object(collection=object_collection)
                         modifier[item_input_id] = selected_object
                         self.node_group_attributes["attributes"][item_name] = selected_object.id_data
+                        if self.is_animated_collection(selected_object.id_data):
+                            self.copy_to_animated_objects(selected_object.id_data)
                         
         if not parent_attribute_value:
             self.collection.append(self.node_group_attributes)
@@ -976,7 +978,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             animated_objects_collection.children.unlink(collection)
             bpy.data.collections.remove(collection)
             
-    def copy_animated_object(self, collection, other):
+    def copy_to_animated_objects(self, other):
+        collection = bpy.data.collections["Animated Objects"]
         collection.children.link(other.copy())
 
     def make_animated_objects_visible(self):
