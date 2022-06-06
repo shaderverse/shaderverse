@@ -672,6 +672,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         if bpy.context.scene.shaderverse.pre_generation_script and bpy.context.scene.shaderverse.enable_pre_generation_script:
             exec(compile(bpy.context.scene.shaderverse.pre_generation_script.as_string(), 'textblock', 'exec'))
         self.all_objects = bpy.data.objects.items()
+        self.create_animated_objects_collection()
 
     def find_geometry_nodes(self, object_ref):
 
@@ -949,7 +950,41 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 bpy.context.scene.shaderverse.parent_node.node_group = node_object["node_group"]
                 object_name = node_object["object_name"]
                 bpy.context.scene.shaderverse.parent_node.object = bpy.data.objects[object_name]
-                
+
+    def create_animated_objects_collection(self):
+        is_animated_objects_created = bpy.data.collections.find("Animated Objects") > 0
+        if not is_animated_objects_created:
+            collection = bpy.data.collections.new("Animated Objects")
+            bpy.context.scene.collection.children.link(collection)
+
+    def is_animated_collection(self, collection):
+        found = False
+        for obj in collection.objects:
+            if obj.animation_data:
+                found = True
+                return found
+            for child in obj.children_recursive:
+                if child.animation_data:
+                    found = True
+                    return found
+        return found
+        
+    def reset_animated_objects(self):
+        animated_objects_collection = bpy.data.collections['Animated Objects']
+        for collection in animated_objects_collection.children_recursive:
+            animated_objects_collection.children.unlink(collection)
+            bpy.data.collections.remove(collection)
+            
+    def copy_animated_object(self, collection, other):
+        collection.children.link(other.copy())
+
+    def make_animated_objects_visible(self):
+        for item in bpy.data.collections['Animated Objects'].all_objects:
+            item.hide_set(False)
+            item.hide_render = False
+        for collection in bpy.data.collections['Animated Objects'].children_recursive:
+            collection.hide_viewport = False
+            collection.hide_render = False
 
     def execute(self, context):
         self.geometry_node_objects = []
