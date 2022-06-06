@@ -261,8 +261,8 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     #builting boolean (variable)property
     bool_toggle: bpy.props.BoolProperty(name='bool toggle')
     #builting string (variable)property
-    string_field: bpy.props.StringProperty(name='string field')
-    
+    metadata_prefix: bpy.props.StringProperty(name='Prefix')
+
 class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
     modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
     node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
