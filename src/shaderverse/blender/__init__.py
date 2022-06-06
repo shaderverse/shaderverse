@@ -268,6 +268,17 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
         prefix = self.metadata_prefix
         return current_name.replace(prefix, "").strip()
 
+    def match_trait(self, trait_type: str, trait_value: str):
+        """ Check whether the specified metadata key value pair matches this item """
+        _trait_value = trait_value.strip().lower()
+        _trait_type = trait_type.strip().lower()
+        found = False
+        for collection in self.id_data.users_collection:
+            if (collection.name.strip().lower() == _trait_type and self.get_trait_value().lower() == _trait_value ): 
+                found = True
+                return found
+        return found
+
 class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
     modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
     node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
@@ -634,7 +645,6 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
 class SHADERVERSE_OT_generate(bpy.types.Operator):
     """Generate new metadata and NFT preview"""
     bl_idname = "shaderverse.generate"
@@ -662,7 +672,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         if bpy.context.scene.shaderverse.pre_generation_script and bpy.context.scene.shaderverse.enable_pre_generation_script:
             exec(compile(bpy.context.scene.shaderverse.pre_generation_script.as_string(), 'textblock', 'exec'))
         self.all_objects = bpy.data.objects.items()
-
 
     def find_geometry_nodes(self, object_ref):
 
