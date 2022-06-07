@@ -773,6 +773,12 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             raise Exception(f"{error}: Could not find at least one valid object in {collection.name}")
         return bpy.data.objects[selected_object_name]
 
+    def get_metadata_object_from_collection(self, collection):
+        """ Return the first object in a collection that has either a custom weight or restriction """
+        for obj in collection.all_objects:
+            if obj.shaderverse.weight < 1 or (len (obj.shaderverse.restrictions) > 0):
+                return obj
+        return collection.all_objects[0]
 
     def select_collection_based_on_object(self, collection):
         collection_objects = []
