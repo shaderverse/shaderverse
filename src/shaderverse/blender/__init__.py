@@ -368,10 +368,10 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_category = "Tool" 
-    bl_context = "modifier"
   
-        
-
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.context in {'MODIFIER','DATA', 'OBJECT'}
 
     def draw_header(self, context):
         if not hasattr(context.object, "shaderverse"):
@@ -397,14 +397,6 @@ class SHADERVERSE_PT_main(bpy.types.Panel):
 
     def draw(self, context):
         pass
-
-
-class SHADERVERSE_PT_object(SHADERVERSE_PG_main):
-    bl_context = "object"
-
-class SHADERVERSE_PT_modifier(SHADERVERSE_PG_main):
-    bl_context = "modifier"
-
 
 class SHADERVERSE_PT_rarity(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
