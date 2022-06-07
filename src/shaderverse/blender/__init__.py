@@ -785,8 +785,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         collection_object_weights = []
         
         for child_collection in collection.children:
-            obj = child_collection.objects[0]
-
+            obj = self.get_metadata_object_from_collection(child_collection)
             restrictions = obj.shaderverse.restrictions
 
             if (len(restrictions) < 1) or (self.is_item_restriction_found(restrictions)):
