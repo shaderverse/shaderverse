@@ -641,6 +641,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         parent_node_object.select_set(True)
         bpy.ops.object.duplicates_make_real()
         bpy.ops.object.convert(target='MESH')
+        bpy.ops.geometry.attribute_convert(mode='UV_MAP')
 
         return {'FINISHED'}
 
