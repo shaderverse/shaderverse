@@ -869,11 +869,14 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
                     if object_collection:
-                        selected_object = parent_attribute_value if parent_attribute_value else self.select_collection_based_on_object(collection=object_collection)
-                        modifier[item_input_id] = selected_object
-                        self.node_group_attributes["attributes"][item_name] = selected_object.id_data
-                        if self.is_animated_collection(selected_object.id_data):
-                            self.copy_to_animated_objects(selected_object.id_data)
+                        if parent_attribute_value:
+                            selected_object = parent_attribute_value 
+                        else:
+                            selected_object = self.select_collection_based_on_object(collection=object_collection)
+                            modifier[item_input_id] = selected_object
+                            self.node_group_attributes["attributes"][item_name] = selected_object.id_data
+                            if self.is_animated_collection(selected_object.id_data):
+                                self.copy_to_animated_objects(selected_object.id_data)
                         
         if not parent_attribute_value:
             self.collection.append(self.node_group_attributes)
