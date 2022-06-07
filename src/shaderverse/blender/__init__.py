@@ -998,11 +998,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
     def make_animated_objects_visible(self):
         for item in bpy.data.collections['Animated Objects'].all_objects:
-            item.hide_set(False)
-            item.hide_render = False
-        for collection in bpy.data.collections['Animated Objects'].children_recursive:
+            if hasattr(item, "shaderverse"):
+                item.hide_set(False)   
+        animated_objects_collection = bpy.context.scene.view_layers[0].layer_collection.children['Animated Objects']
+        for collection in animated_objects_collection.children:
             collection.hide_viewport = False
-            collection.hide_render = False
 
     def execute(self, context):
         self.geometry_node_objects = []
