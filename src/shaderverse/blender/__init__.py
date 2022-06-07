@@ -634,14 +634,27 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
     bl_label = "Realize Geonode"
     bl_options = {'REGISTER', 'UNDO'}
 
+    def realize_object(self, obj):
+        obj.hide_set(False)
+        bpy.context.view_layer.objects.active = obj
+        obj.select_set(True)
+        bpy.ops.object.duplicates_make_real()
+        try:
+            bpy.ops.object.convert(target='MESH')
+        except:
+            print(f"Could not convert mesh for {obj.name}")
+
+        try:
+            bpy.ops.geometry.attribute_convert(mode='UV_MAP')
+        except:
+            print(f"Could not convert UV MAP for {obj.name}")
+
     def execute(self, context):
         parent_node_object = context.scene.shaderverse.main_geonodes_object
-        parent_node_object.hide_set(False)
-        bpy.context.view_layer.objects.active = parent_node_object
-        parent_node_object.select_set(True)
-        bpy.ops.object.duplicates_make_real()
-        bpy.ops.object.convert(target='MESH')
-        bpy.ops.geometry.attribute_convert(mode='UV_MAP')
+        self.realize_object(parent_node_object)
+        animated_objects = bpy.data.collections['Animated Objects'].all_objects
+        for obj in animated_objects:
+            self.realize_object(obj)
 
         return {'FINISHED'}
 
