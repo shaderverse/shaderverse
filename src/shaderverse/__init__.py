@@ -6,7 +6,6 @@ BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 BPY_USER_BASE = site.USER_BASE
 BPY_SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
-
 bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
