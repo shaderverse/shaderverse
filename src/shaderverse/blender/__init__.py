@@ -262,11 +262,15 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
     bool_toggle: bpy.props.BoolProperty(name='bool toggle')
     #builting string (variable)property
     metadata_prefix: bpy.props.StringProperty(name='Prefix')
+    metadata_is_none: bpy.props.BoolProperty(name='Is None')
 
     def get_trait_value(self):
         current_name = self.id_data.name
         prefix = self.metadata_prefix
-        return current_name.replace(prefix, "").strip()
+        if self.metadata_is_none:
+            return "None"
+        else:
+            return current_name.replace(prefix, "").strip()
 
     def match_trait(self, trait_type: str, trait_value: str):
         """ Check whether the specified metadata key value pair matches this item """
@@ -480,6 +484,8 @@ class SHADERVERSE_PT_metadata(bpy.types.Panel):
         this_context = context.object
         row1 = box.row()
         row1.prop(this_context.shaderverse, 'metadata_prefix')
+        row1 = box.row()
+        row1.prop(this_context.shaderverse, 'metadata_is_none')
         row2 = box.row()
         row2.label(text=f"Trait Value: {this_context.shaderverse.get_trait_value()}")
         row2.enabled = False
@@ -900,6 +906,9 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     #     return ob and ob.type == 'MESH'
 
     def format_value(self, item):
+        if hasattr(item, "shaderverse"):
+            #TODO handle prefix values for material names
+            return item.shaderverse.get_trait_value()
         if hasattr(item, "name"):
             return item.name
         if type(item) is float:
