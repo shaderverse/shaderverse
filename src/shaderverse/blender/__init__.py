@@ -978,10 +978,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 bpy.context.scene.shaderverse.parent_node.object = bpy.data.objects[object_name]
 
     def create_animated_objects_collection(self):
-        is_animated_objects_created = bpy.data.collections.find("Animated Objects") > 0
+        is_animated_objects_created = bpy.data.collections.find("Animated Objects") >= 0
         if not is_animated_objects_created:
             collection = bpy.data.collections.new("Animated Objects")
             bpy.context.scene.collection.children.link(collection)
+            
 
     def is_animated_collection(self, collection):
         found = False
