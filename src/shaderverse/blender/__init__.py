@@ -838,73 +838,55 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
             item_type = item_ref.type
             item_input_id = item_ref.identifier 
-            parent_attribute_value  = None
-            is_parent_node = node_object["is_parent_node"]
 
-            if (not is_parent_node):
+
+            if item_type == "VALUE":
+                precision = 0.01
+                generated_value = self.generate_random_range(item_ref=item_ref, precision=precision)
+                self.node_group_attributes["attributes"][item_name] = generated_value
+
+            if item_type == "INT":
+                precision = 1
+                generated_value = self.generate_random_range(item_ref=item_ref, precision=precision)
+                self.node_group_attributes["attributes"][item_name] = generated_value
                 
-                for item in self.collection:
-                    if item["is_parent_node"]:
-                        attributes = item["attributes"]
-                        for key in attributes:
-                            if item_name == key:
-                                parent_attribute_value = attributes[key]
+            if item_type == "MATERIAL":
+                # look for a collection with the same name of the material input
+                try:
+                    material_collection = bpy.data.collections[item_name]
+                except KeyError as error:
+                    raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
-            is_generator_input = is_parent_node or parent_attribute_value
+                if material_collection:
+                    selected_collection = self.select_object_from_collection(collection=material_collection)
+                    selected_material_name = selected_collection.material_slots[0].name
+                    selected_material = bpy.data.materials[selected_material_name]
+                    if selected_material:
+                        self.node_group_attributes["attributes"][item_name] = selected_material.id_data
 
-            if is_generator_input:
+            if item_type == "OBJECT":
+                try:
+                    object_collection = bpy.data.collections[item_name]
+                except KeyError as error:
+                    raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
-                if item_type == "VALUE":
-                    precision = 0.01
-                    generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
-                    self.node_group_attributes["attributes"][item_name] = generated_value
+                if object_collection:
+                    selected_collection = self.select_object_from_collection(collection=object_collection)
+                    self.node_group_attributes["attributes"][item_name] = selected_collection.id_data
+            
+            if item_type == "COLLECTION":
+                try:
+                    object_collection = bpy.data.collections[item_name]
+                except KeyError as error:
+                    raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
-                if item_type == "INT":
-                    precision = 1
-                    generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
-                    self.node_group_attributes["attributes"][item_name] = generated_value
-                    
-                if item_type == "MATERIAL":
-                    # look for a collection with the same name of the material input
-                    try:
-                        material_collection = bpy.data.collections[item_name]
-                    except KeyError as error:
-                        raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
-
-                    if material_collection:
-                        selected_collection = self.select_object_from_collection(collection=material_collection)
-                        selected_material_name = selected_collection.material_slots[0].name
-                        selected_material = parent_attribute_value if parent_attribute_value else bpy.data.materials[selected_material_name]
-                        if selected_material:
-                            self.node_group_attributes["attributes"][item_name] = selected_material.id_data
-
-                if item_type == "OBJECT":
-                    try:
-                        object_collection = bpy.data.collections[item_name]
-                    except KeyError as error:
-                        raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
-
-                    if object_collection:
-                        selected_collection = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
-                        self.node_group_attributes["attributes"][item_name] = selected_collection.id_data
-                
-                if item_type == "COLLECTION":
-                    try:
-                        object_collection = bpy.data.collections[item_name]
-                    except KeyError as error:
-                        raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
-
-                    if object_collection:
-                        if parent_attribute_value:
-                            selected_collection = parent_attribute_value 
-                        else:
-                            selected_collection = self.select_collection_based_on_object(collection=object_collection)
-                            self.node_group_attributes["attributes"][item_name] = "None" if self.is_collection_none(selected_collection.id_data) else selected_collection.id_data
-                            if self.is_animated_collection(selected_collection.id_data):
-                                self.copy_to_animated_objects(selected_collection.id_data)
+                if object_collection:
+                    selected_collection = self.select_collection_based_on_object(collection=object_collection)
+                    self.node_group_attributes["attributes"][item_name] = "None" if self.is_collection_none(selected_collection.id_data) else selected_collection.id_data
+                    if self.is_animated_collection(selected_collection.id_data):
+                        self.copy_to_animated_objects(selected_collection.id_data)
                         
-        if not parent_attribute_value:
-            self.collection.append(self.node_group_attributes)
+        self.collection.append(self.node_group_attributes)
 
 
     def match_object_from_metadata(self, trait_type, trait_value):
@@ -942,9 +924,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
             # is this attribute in our node group?
             if trait_type in node_group.inputs.keys():
-
-                # node_group.input[trait_type] = trait_value
-
 
                 item_ref = node_group.inputs[trait_type]
 
@@ -1104,21 +1083,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         for node_object in self.geometry_node_objects:
             self.update_mesh(node_object)
 
-
-
-        # for node_object in self.geometry_node_objects:
-        #     # update the parent nodes first
-        #     if node_object["is_parent_node"]:
-        #         self.update_mesh(node_object)
-
-        # for node_object in self.geometry_node_objects:
-        #     if not node_object["is_parent_node"]:
-        #         self.update_mesh(node_object)
-
-        # if object_ref.shaderverse.parent_node save metadata for all children
-        
-        
-        # print(self.collection)
         self.active_geometry_node_objects = []
         for node_object in self.geometry_node_objects:
             if node_object["is_parent_node"]: 
