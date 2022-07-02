@@ -285,12 +285,11 @@ class SHADERVERSE_PG_main(bpy.types.PropertyGroup):
         """ Check whether the specified metadata key value pair matches this item """
         _trait_value = trait_value.strip().lower()
         _trait_type = trait_type.strip().lower()
-        found = False
-        for collection in self.id_data.users_collection:
-            if (collection.name.strip().lower() == _trait_type and self.get_trait_value().lower() == _trait_value ): 
-                found = True
-                return found
-        return found
+        
+        is_collection_matching = _trait_value in [object_name.lower() for object_name in bpy.data.collections[trait_type].all_objects.keys()]
+        is_object_matching = self.get_trait_value().lower() == _trait_value
+
+        return is_collection_matching and is_object_matching
 
 class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
     modifier_name: bpy.props.StringProperty(name="Parent Node Modifier Name")
