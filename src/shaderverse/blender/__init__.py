@@ -948,12 +948,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     modifier[item_input_id] = collection_ref
                         
 
-
-    # @classmethod 
-    # def poll(cls, context):
-    #     ob = context.active_object
-    #     return ob and ob.type == 'MESH'
-
     def format_value(self, item):
         if hasattr(item, "shaderverse"):
             #TODO handle prefix values for material names
@@ -1060,40 +1054,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         self.make_animated_objects_visible()
 
         return {'FINISHED'}
-
-
-# class SHADERVERSE_PT_generate(bpy.types.Panel):
-#     """Shaderverse generator button panel"""
-#     bl_label = "Shaderverse"
-#     bl_space_type = 'PROPERTIES'
-#     bl_region_type = 'WINDOW'
-#     bl_category = "Tool" 
-
-#     def draw(self, context):
-#         layout = self.layout
-#         row = layout.row()
-
-#         shaderverse_generate = SHADERVERSE_OT_generate
-
-#         row.operator(shaderverse_generate.bl_idname, text=shaderverse_generate.bl_label, icon_value=custom_icons["custom_icon"].icon_id)
-
-
-# class SHADERVERSE_OT_start_server(bpy.types.Operator):
-#     """Generate new metadata and NFT preview"""
-#     bl_idname = "shaderverse.start_server"
-#     bl_label = "Start Server"
-#     bl_options = {'REGISTER', 'UNDO'}
-
-
-#     def execute(self, context) -> typing.Set[str]:
-#         server.Server.start_threads()
-        
-#         # print("Waiting for threads to finish...")
-
-#         # for t in self.threads:
-#         #     t.join()
-
-#         return {'FINISHED'}
 
 
 class SHADERVERSE_OT_live_preview(bpy.types.Operator):
