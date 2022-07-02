@@ -31,7 +31,6 @@ class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
         items = []
         for modifier in bpy.context.scene.shaderverse.main_geonodes_object.modifiers.values():
             node_group = modifier.node_group
-            print(node_group)
             if node_group.type == "GEOMETRY":
                 for trait_type in node_group.inputs.keys():
                     items.append((trait_type, trait_type, ""))
@@ -834,7 +833,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             item_name = item[0]
             item_ref = item[1]
             
-            print(node_group)
 
             item_type = item_ref.type
             item_input_id = item_ref.identifier 
@@ -1043,10 +1041,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             self.update_mesh(node_object)
 
         
-
-
-        print(self.attributes)
-
         # run a custom script after generation
         if bpy.context.scene.shaderverse.post_generation_script and bpy.context.scene.shaderverse.enable_post_generation_script:
             exec(compile(bpy.context.scene.shaderverse.post_generation_script.as_string(), 'textblock', 'exec'))
