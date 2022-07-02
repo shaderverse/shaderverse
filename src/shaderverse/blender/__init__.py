@@ -885,7 +885,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                     self.node_group_attributes["attributes"][item_name] = "None" if self.is_collection_none(selected_collection.id_data) else selected_collection.id_data
                     if self.is_animated_collection(selected_collection.id_data):
                         self.copy_to_animated_objects(selected_collection.id_data)
-                        
+
         self.collection.append(self.node_group_attributes)
 
 
@@ -979,30 +979,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
         bpy.context.scene.shaderverse.generated_metadata = json.dumps(self.attributes)
 
-    def get_active_geometry_node_objects(self, node_group):
-        geometry_nodes_objects = []
-        node_object_ref = node_group["object_ref"]
-        geometry_nodes_objects += self.find_geometry_nodes(node_object_ref)
 
-        collection_item = next(item for item in self.collection if item["object_name"] == node_group["object_name"])
-
-
-        for data_path in collection_item["attributes"].values():
-            if hasattr(data_path, "name"):
-                if data_path.name in bpy.data.materials:
-                    continue 
-                elif data_path.name in bpy.data.objects:
-                    geometry_nodes_objects += self.find_geometry_nodes(data_path)
-                    for object_ref in data_path.children:
-                        geometry_nodes_objects += self.find_geometry_nodes(object_ref) 
-                elif data_path.name in bpy.data.collections:
-                    for child_node in data_path.objects.items():
-                        object_ref = child_node[1]
-                        geometry_nodes_objects += self.find_geometry_nodes(object_ref)
-            
-
-        return geometry_nodes_objects
-    
     def update_mesh(self, node_object):
         self.set_node_inputs_from_metadata(node_object)
         object_name = node_object["object_name"]
@@ -1012,17 +989,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         mesh.update()
 
     
-
-    def set_parent_node(self):
-        for node_object in self.geometry_node_objects:
-            # update the parent nodes first
-            if node_object["is_parent_node"]:
-                self.parent_node = node_object
-                bpy.context.scene.shaderverse.parent_node.modifier_name = node_object["modifier_name"]
-                bpy.context.scene.shaderverse.parent_node.node_group = node_object["node_group"]
-                object_name = node_object["object_name"]
-                bpy.context.scene.shaderverse.parent_node.object = bpy.data.objects[object_name]
-
     def create_animated_objects_collection(self):
         is_animated_objects_created = bpy.data.collections.find("Animated Objects") >= 0
         if not is_animated_objects_created:
@@ -1071,7 +1037,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             object_ref = obj[1]
             self.geometry_node_objects += self.find_geometry_nodes(object_ref)
 
-        self.set_parent_node()
         main_geonodes_object =  bpy.context.scene.shaderverse.main_geonodes_object
 
         main_geonodes = self.find_geometry_nodes(main_geonodes_object)
@@ -1083,10 +1048,6 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         for node_object in self.geometry_node_objects:
             self.update_mesh(node_object)
 
-        self.active_geometry_node_objects = []
-        for node_object in self.geometry_node_objects:
-            if node_object["is_parent_node"]: 
-                self.active_geometry_node_objects += self.get_active_geometry_node_objects(node_object)
         
 
 
