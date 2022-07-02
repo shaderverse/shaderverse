@@ -17,19 +17,28 @@ BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list."""
 
-
-    def get_traits(self, context):
+    def get_traits_from_metadata(self, context):
+        """ Get the traits from the metadata (deprecated)"""
         generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
         items = []
-        
         for attribute in generated_metadata:
             trait_type = attribute["trait_type"]
             items.append((trait_type, trait_type, ""))
         return items
     
+    def get_traits_from_geonode(self, context):
+        """ Get the traits for restrictions from the geometry """
+        items = []
+        for modifier in bpy.context.scene.shaderverse.main_geonodes_object.modifiers.values():
+            node_group = modifier.node_group
+            print(node_group)
+            if node_group.type == "GEOMETRY":
+                for trait_type in node_group.inputs.keys():
+                    items.append((trait_type, trait_type, ""))
+        return items
+    
 
-    trait: bpy.props.EnumProperty(items=get_traits, name="Objects", description="Traits"
-    )
+    trait: bpy.props.EnumProperty(items=get_traits_from_geonode, name="Objects", description="Traits")
     
     def __repr__(self):
         active_field_object = self.get_active_field()
