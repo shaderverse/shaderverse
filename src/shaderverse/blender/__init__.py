@@ -807,6 +807,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
     def is_parent_node(self, current_node_object_name):
         return current_node_object_name == bpy.context.scene.shaderverse.main_geonodes_object.name
 
+    def is_collection_none(self, collection):
+        for obj in collection.all_objects.values():
+            if obj.shaderverse.metadata_is_none:
+                return True
+        return False
 
     def generate_metadata(self, node_object):
         modifier_name = node_object["modifier_name"]
@@ -852,13 +857,11 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                 if item_type == "VALUE":
                     precision = 0.01
                     generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
-                    modifier[item_input_id] = generated_value
                     self.node_group_attributes["attributes"][item_name] = generated_value
 
                 if item_type == "INT":
                     precision = 1
                     generated_value = parent_attribute_value if parent_attribute_value else self.generate_random_range(item_ref=item_ref, precision=precision)
-                    modifier[item_input_id] = generated_value
                     self.node_group_attributes["attributes"][item_name] = generated_value
                     
                 if item_type == "MATERIAL":
@@ -869,11 +872,10 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
                     if material_collection:
-                        selected_object = self.select_object_from_collection(collection=material_collection)
-                        selected_material_name = selected_object.material_slots[0].name
+                        selected_collection = self.select_object_from_collection(collection=material_collection)
+                        selected_material_name = selected_collection.material_slots[0].name
                         selected_material = parent_attribute_value if parent_attribute_value else bpy.data.materials[selected_material_name]
                         if selected_material:
-                            modifier[item_input_id] = selected_material
                             self.node_group_attributes["attributes"][item_name] = selected_material.id_data
 
                 if item_type == "OBJECT":
@@ -883,9 +885,8 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
                         raise Exception(f"{error}: Could not find a value for {item_name} in {object_name}. Is {item_name} added as an input in your root geometry node?")
 
                     if object_collection:
-                        selected_object = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
-                        modifier[item_input_id] = selected_object
-                        self.node_group_attributes["attributes"][item_name] = selected_object.id_data
+                        selected_collection = parent_attribute_value if parent_attribute_value else self.select_object_from_collection(collection=object_collection)
+                        self.node_group_attributes["attributes"][item_name] = selected_collection.id_data
                 
                 if item_type == "COLLECTION":
                     try:
@@ -895,17 +896,78 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
 
                     if object_collection:
                         if parent_attribute_value:
-                            selected_object = parent_attribute_value 
+                            selected_collection = parent_attribute_value 
                         else:
-                            selected_object = self.select_collection_based_on_object(collection=object_collection)
-                            modifier[item_input_id] = selected_object
-                            self.node_group_attributes["attributes"][item_name] = selected_object.id_data
-                            if self.is_animated_collection(selected_object.id_data):
-                                self.copy_to_animated_objects(selected_object.id_data)
+                            selected_collection = self.select_collection_based_on_object(collection=object_collection)
+                            self.node_group_attributes["attributes"][item_name] = "None" if self.is_collection_none(selected_collection.id_data) else selected_collection.id_data
+                            if self.is_animated_collection(selected_collection.id_data):
+                                self.copy_to_animated_objects(selected_collection.id_data)
                         
         if not parent_attribute_value:
             self.collection.append(self.node_group_attributes)
 
+
+    def match_object_from_metadata(self, trait_type, trait_value):
+        matched_object = None
+        collection = bpy.data.collections[trait_type]
+        for obj in collection.all_objects.values():
+            if obj.shaderverse.match_trait(trait_type, trait_value):
+                matched_object = obj
+                return matched_object
+        return matched_object
+
+    def match_collection_from_metadata(self, trait_type, trait_value):
+        matched_collection = None
+        collection = bpy.data.collections[trait_type]
+        for obj in collection.all_objects.values():
+            if obj.shaderverse.match_trait(trait_type, trait_value):
+                matched_collection = obj.users_collection[0]
+                return matched_collection
+        return matched_collection
+
+
+    def set_node_inputs_from_metadata(self, node_object):
+        modifier_name = node_object["modifier_name"]
+        modifier = node_object["modifier_ref"]
+        node_group = modifier.node_group
+        node_group_name = node_group.name
+        object_name = node_object["object_name"]
+        object_ref = bpy.data.objects[object_name]
+
+        metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+
+        for attribute in metadata:
+            trait_type = attribute['trait_type']
+            trait_value = attribute['value']
+
+            # is this attribute in our node group?
+            if trait_type in node_group.inputs.keys():
+
+                # node_group.input[trait_type] = trait_value
+
+
+                item_ref = node_group.inputs[trait_type]
+
+                item_type = item_ref.type
+                item_input_id = item_ref.identifier 
+
+                if item_type == "VALUE":
+                    modifier[item_input_id] = trait_value
+
+                if item_type == "INT":
+                    modifier[item_input_id] = trait_value
+                        
+                if item_type == "MATERIAL":
+                    modifier[item_input_id] = bpy.data.materials[trait_value]
+
+                if item_type == "OBJECT":
+                    object_ref = self.match_object_from_metadata(trait_type, trait_value)
+                    modifier[item_input_id] = object_ref
+                
+                if item_type == "COLLECTION":
+                    collection_ref = self.match_collection_from_metadata(trait_type, trait_value)
+                    modifier[item_input_id] = collection_ref
+                        
 
 
     # @classmethod 
@@ -927,18 +989,15 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             return item
     
     def set_attributes(self):
-        for node_object in self.active_geometry_node_objects:
+        attributes = self.collection[0]["attributes"]
+        for key in attributes:
+            value = self.format_value(attributes[key])
+            attribute_data = {
+                "trait_type": key,
+                "value": value
+            }
+            self.attributes.append(attribute_data)
 
-            collection_item = next((item for item in self.collection if item["object_name"] == node_object["object_name"]), None)
-            if collection_item:
-                attributes = collection_item["attributes"]
-                for key in attributes:
-                    value = self.format_value(attributes[key])
-                    attribute_data = {
-                        "trait_type": key,
-                        "value": value
-                    }
-                    self.attributes.append(attribute_data)
         bpy.context.scene.shaderverse.generated_metadata = json.dumps(self.attributes)
 
     def get_active_geometry_node_objects(self, node_group):
@@ -966,7 +1025,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
         return geometry_nodes_objects
     
     def update_mesh(self, node_object):
-        self.generate_metadata(node_object=node_object)
+        self.set_node_inputs_from_metadata(node_object)
         object_name = node_object["object_name"]
         object_ref = bpy.data.objects[object_name]
         mesh_name = object_ref.data.name
@@ -1034,15 +1093,27 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             self.geometry_node_objects += self.find_geometry_nodes(object_ref)
 
         self.set_parent_node()
+        main_geonodes_object =  bpy.context.scene.shaderverse.main_geonodes_object
+
+        main_geonodes = self.find_geometry_nodes(main_geonodes_object)
+        for node in main_geonodes:
+            self.generate_metadata(node)
+
+        self.set_attributes()
 
         for node_object in self.geometry_node_objects:
-            # update the parent nodes first
-            if node_object["is_parent_node"]:
-                self.update_mesh(node_object)
+            self.update_mesh(node_object)
 
-        for node_object in self.geometry_node_objects:
-            if not node_object["is_parent_node"]:
-                self.update_mesh(node_object)
+
+
+        # for node_object in self.geometry_node_objects:
+        #     # update the parent nodes first
+        #     if node_object["is_parent_node"]:
+        #         self.update_mesh(node_object)
+
+        # for node_object in self.geometry_node_objects:
+        #     if not node_object["is_parent_node"]:
+        #         self.update_mesh(node_object)
 
         # if object_ref.shaderverse.parent_node save metadata for all children
         
@@ -1053,7 +1124,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             if node_object["is_parent_node"]: 
                 self.active_geometry_node_objects += self.get_active_geometry_node_objects(node_object)
         
-        self.set_attributes()
+
 
         print(self.attributes)
 
