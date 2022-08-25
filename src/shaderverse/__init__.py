@@ -10,7 +10,7 @@ bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 11, 18),
+  "version": (1, 0, 11, 19),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
@@ -33,14 +33,16 @@ classes = [
     blender.SHADERVERSE_PG_restrictions_item,
     blender.SHADERVERSE_PG_main,
     blender.SHADERVERSE_PG_parent_node,
+    blender.SHADERVERSE_PG_render,
     blender.SHADERVERSE_PG_scene,
     blender.SHADERVERSE_PG_preferences,
     blender.SHADERVERSE_PT_main,
     blender.SHADERVERSE_PT_preferences,
     blender.SHADERVERSE_PT_rarity,
-    blender.SHADERVERSE_PT_rendering,
     blender.SHADERVERSE_PT_metadata,
     blender.SHADERVERSE_PT_generated_metadata,
+    blender.SHADERVERSE_PT_rendering,
+    blender.SHADERVERSE_PT_batch,
     blender.SHADERVERSE_PT_settings,
     blender.SHADERVERSE_PT_restrictions,
     blender.SHADERVERSE_UL_restrictions,
@@ -50,8 +52,10 @@ classes = [
     blender.SHADERVERSE_OT_generate,
     blender.SHADERVERSE_OT_realize,
     blender.SHADERVERSE_OT_live_preview,
-    blender.SHADERVERSE_OT_stop_generator,
-    blender.SHADERVERSE_OT_install_modules
+    blender.SHADERVERSE_OT_stop_live_preview,
+    blender.SHADERVERSE_OT_install_modules,
+    blender.SHADERVERSE_OT_render,
+    
 ]
 
 def register():

@@ -1,28 +1,12 @@
-from pydantic import BaseModel, Json
-from typing import Optional, List, Set
 
-class Trait(BaseModel):
-    trait_type: str
-    value: str
+from pydantic import UUID4, BaseModel
 
-class Metadata(BaseModel):
-    filename: str = None
-    traits: List[Trait] = None
+class BlenderData(BaseModel):
+    blend_file: str = None
+    blender_binary_path: str = None
+    next_port: int 
 
-class GlbFile(BaseModel):
-    buffer: bytes = None
-
-
-
-
-# class Request(BaseModel):
-#     hooks: Optional[str]
-#     method: Optional[str]
-#     url: Optional[str]
-#     headers: Optional[str]
-#     files: Optional[str]
-#     data: Optional[str]
-#     json: Optional[Json]
-#     params: Optional[str]
-#     auth: Optional[str]
-#     cookies: Optional[str]
+class Session(BaseModel):
+    id: UUID4
+    port: int 
+    blend_file: str = None

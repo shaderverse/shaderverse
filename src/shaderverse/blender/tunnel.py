@@ -22,7 +22,7 @@ class Tunnel():
         """ Kill all ngrok processes """
         ngrok.kill()
         self.alive = False
-        print(f"Started tunnel: {self.subdomain}")
+        print(f"Stopped tunnel: {self.subdomain}")
 
 
 def start():

@@ -8,6 +8,7 @@ import os
 import pathlib
 from ..nft import NFT
 
+
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 
 
@@ -295,12 +296,18 @@ class SHADERVERSE_PG_parent_node(bpy.types.PropertyGroup):
     node_group: bpy.props.PointerProperty(name="Parent Node Group",  type=bpy.types.GeometryNodeTree)
     object: bpy.props.PointerProperty(name="Parent Node's Object",  type=bpy.types.Object)
 
-    
+class SHADERVERSE_PG_render(bpy.types.PropertyGroup):
+    range_start: bpy.props.IntProperty(name="Start Number", default=1)
+    range_end: bpy.props.IntProperty(name="End Number", default=20)
+    batch_name: bpy.props.StringProperty(name="Batch Name", default="batch-01")
+    basepath: bpy.props.StringProperty(name="Base Path", subtype="FILE_PATH")
+  
 class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     generated_metadata: bpy.props.StringProperty(name="Generated Meta Data")
 
     parent_node: bpy.props.PointerProperty(type=SHADERVERSE_PG_parent_node)
 
+    render: bpy.props.PointerProperty(type=SHADERVERSE_PG_render)
     main_geonodes_object: bpy.props.PointerProperty(type=bpy.types.Object, name="Main Geometry Nodes Object")
     
     enable_pre_generation_script: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=False)
@@ -312,7 +319,6 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
     preview_url: bpy.props.StringProperty(name="Shaderverse preview url")
 
     enable_materials_export: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=True)
-
 
 class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
     modules_installed: bpy.props.BoolProperty(name="Python Modules Installed", default=False)
@@ -353,8 +359,30 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
         self.install()
 
         return{'FINISHED'}
+
+class SHADERVERSE_OT_render(bpy.types.Operator):
+    """Render NFT"""
+    bl_idname = "shaderverse.render"
+    bl_label = "Render Batch"
+    bl_options = {'REGISTER'}
+
+
+
+    def execute(self, context):
+        from ..model import GenRange
+        from ..render import Render     
+        range_start = context.scene.shaderverse.render.range_start
+        range_end = context.scene.shaderverse.render.range_end
+        basepath = context.scene.shaderverse.render.basepath
+        batch_name = context.scene.shaderverse.render.batch_name
+        
+        gen_range: GenRange = GenRange(start=range_start, end=range_end)
+        renderer = Render(gen_range=gen_range, basepath=basepath, batch_name=batch_name)
+        renderer.execute()
+
+        return{'FINISHED'}
     
-    
+      
 
 class SHADERVERSE_PT_preferences(bpy.types.AddonPreferences):
     bl_idname = "shaderverse"
@@ -588,6 +616,54 @@ class SHADERVERSE_PT_settings(bpy.types.Panel):
         if this_context.shaderverse.enable_post_generation_script:
             box = col.box()
             box.prop(this_context.shaderverse, 'post_generation_script', text="Python Script")
+
+
+class SHADERVERSE_PT_rendering(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Shaderverse"
+    bl_label = "Rendering"
+
+    def draw(self, context):
+        from .. import custom_icons
+        # You can set the property values that should be used when the user
+        # presses the button in the UI.
+        layout = self.layout 
+        this_context = bpy.context.scene
+        shaderverse_render = SHADERVERSE_OT_render
+
+        layout.operator(shaderverse_render.bl_idname, text=shaderverse_render.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
+
+
+        row = layout.row()
+        row.prop(this_context.shaderverse.render, 'basepath')
+
+class SHADERVERSE_PT_batch(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Shaderverse"
+    bl_label = "Batch"
+    bl_parent_id = "SHADERVERSE_PT_rendering"
+
+    def draw(self, context):
+        # You can set the property values that should be used when the user
+        # presses the button in the UI.
+        layout = self.layout 
+
+        this_context = bpy.context.scene
+
+        row = layout.row()
+        row.prop(this_context.shaderverse.render, 'batch_name')
+
+        row = layout.row()
+        row.prop(this_context.shaderverse.render, 'range_start')
+        row = layout.row()
+        row.prop(this_context.shaderverse.render, 'range_end')
+
+
+
+
+
 
 class SHADERVERSE_PT_restrictions(bpy.types.Panel):
     bl_parent_id = "SHADERVERSE_PT_main"
@@ -960,6 +1036,7 @@ class SHADERVERSE_OT_generate(bpy.types.Operator):
             return item
     
     def set_attributes(self):
+        print(self.collection)
         attributes = self.collection[0]["attributes"]
         for key in attributes:
             value = self.format_value(attributes[key])
@@ -1060,24 +1137,23 @@ class SHADERVERSE_OT_live_preview(bpy.types.Operator):
     def execute(self, context):
         from . import server
         context = bpy.context
-        server.start_live_preview()
+        server.start_server(live_preview=True)
         return {'FINISHED'}
 
-class SHADERVERSE_OT_stop_generator(bpy.types.Operator):
+class SHADERVERSE_OT_stop_live_preview(bpy.types.Operator):
     
-    """ Stop the shaderverse generator """
-    bl_idname = "shaderverse.stop_generator"
-    bl_label = "Stop Server Generator"
+    """ Stop the shaderverse live preview """
+    bl_idname = "shaderverse.stop_live_preview"
+    bl_label = "Stop Live Preview"
     bl_options = {'REGISTER'}
-
     
     def execute(self, context):
         from . import server
         context = bpy.context
-        print("stopping generator")
+        print("stopping live preview")
         server.kill_fastapi()
+        server.kill_tunnel()
         return {'FINISHED'}
-
 
 
 def handle_adding_sites_to_path():
@@ -1089,7 +1165,3 @@ def handle_adding_sites_to_path():
 
     sys.path.append(user_base)
     sys.path.append(user_site)
-
-
-
-

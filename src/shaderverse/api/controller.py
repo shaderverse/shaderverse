@@ -1,6 +1,7 @@
+from typing import Dict, List
 from fastapi import FastAPI, Request
-from pydantic import UUID4, Json
-from shaderverse.api.model import Metadata, Trait, GlbFile
+from pydantic import UUID4, BaseModel, Json
+from shaderverse.model import Metadata, Trait, GlbFile
 import subprocess
 import uuid
 import requests
@@ -10,18 +11,22 @@ import os
 import uvicorn
 import argparse
 import shaderverse
+from shaderverse.api.model import BlenderData, Session
 
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 BLENDER_DATA_PATH = os.path.join(SCRIPT_PATH, "data", "blender_data.json")
 
-def save_proxy_session(blender_data: dict):
-    with open(BLENDER_DATA_PATH, 'w') as outfile:
-        json.dump(blender_data, outfile)
 
-def load_proxy_session()-> dict:
+def save_proxy_session(blender_data: BlenderData):
+    with open(BLENDER_DATA_PATH, 'w') as outfile:
+        json.dump(blender_data.dict(), outfile)
+
+def load_proxy_session()-> BlenderData:
     with open(BLENDER_DATA_PATH) as json_file:
-        return json.load(json_file)
+        json_results = json.load(json_file)
+        blender_data: BlenderData = BlenderData(**json_results)
+        return blender_data
 
 # print(BPY_SCRIPT_PATH)
 # SCRIPT_PATH = os.path.join(BPY_SCRIPT_PATH, "fastapi")
@@ -29,12 +34,11 @@ def load_proxy_session()-> dict:
 
 # a global dictionary of sessions. for production, this should be replaced with a Redis instance or a similiar solution
 
-sessions = {}
-next_port = 8119
+
 proxy = None
 
 
-
+sessions = {}
 
 class Proxy():
     def __init__(self, blender_binary_path: str, blend_file: str, )-> None:
@@ -46,8 +50,7 @@ class Proxy():
         self.blend_file = blend_file
         self.port = "8118"  # you don't need to generate this from ID or anything - just make sure the port is valid and unoccupied
         self.script_path = os.path.join(SCRIPT_PATH, "controller.py")
-        blender_data = {"blend_file": blend_file, 
-                   "blender_binary_path": blender_binary_path}
+        blender_data: BlenderData = BlenderData(blend_file=self.blend_file, blender_binary_path = self.blender_binary_path, next_port = int(self.port)+1)
         save_proxy_session(blender_data=blender_data)
 
         # try:
@@ -72,14 +75,6 @@ def create_new_session(session_id):
     return BlenderInstance(session_id)
 
 
-def generate_free_port(id):
-    global next_port
-    assigned_port = next_port
-    new_port = next_port + 1
-    next_port = new_port
-    return assigned_port
-
-
 def generate_new_session_id():
     session_id = uuid.uuid4()
     return session_id
@@ -90,16 +85,19 @@ class BlenderInstance():
         self.id = id
         # you don't need to generate this from ID or anything - just make sure the port is valid and unoccupied
         blender_data = load_proxy_session()
-        self.blender_binary_path = blender_data["blender_binary_path"]
-        self.blend_file = blender_data["blend_file"]
-        self.port = str(generate_free_port(id))
+        self.blender_binary_path = blender_data.blender_binary_path
+        self.blend_file = blender_data.blend_file
+        self.port = str(blender_data.next_port)
+        blender_data.next_port += 1
+        
         self.script_path = os.path.join(SCRIPT_PATH, "shaderverse_blender.py")
         # self.process = subprocess.Popen([PYTHON_BIN, self.script_path, '--port', self.port], shell=True)
 
         # stdout=subprocess.PIPE,
         # stderr=subprocess.STDOUT, 
-        command = [self.blender_binary_path, self.blend_file, "--background", "--addons", "shaderverse", "--python", self.script_path, "--", "--port", self.port]
+        command = [self.blender_binary_path, self.blend_file, "--background", "--addons", "shaderverse", "--log-level", "0", "--python", self.script_path, "--", "--port", self.port]
         self.process = subprocess.Popen(command, shell=True)
+        save_proxy_session(blender_data=blender_data)
 
     def run(self, action):
 
@@ -121,18 +119,35 @@ app = FastAPI()
 
 
 # create new session - generate uniqe ID and spawn new ray_blender process
-@app.post("/new_session")
+@app.post("/new_session", response_model=Session)
 async def start_session():
+    global sessions
     session_id = generate_new_session_id()
-    sessions[session_id] = create_new_session(session_id)
-    return {
-        "session_id": session_id  # we return the session ID to the client
-    }
+    blender_session: BlenderInstance = create_new_session(session_id)
+    port = blender_session.port
+    blend_file = blender_session.blend_file
+
+    sessions[session_id]= blender_session
+
+    session: Session = Session(id=session_id, port=int(port), blend_file=blend_file)
+
+    return session
+
+# @app.get("/")
+# async def list_sessions():
+#     global sessions
+#     session_ids = []
+#     for session in sessions:
+#         session_ids.append(session["session_id"])
+#     return {
+#         "sessions": session_ids
+#     }
 
 
 # client identifies itself with session ID, and specifies the action they want to preform. This will be useful for most of the actions,
 @app.post("/perform_action/{action}/{session_id}")
 async def perform_action(action: str, session_id: UUID4):
+    global sessions
     # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
     print(f"session_id: {session_id}")
     print(sessions[session_id])

@@ -1,14 +1,15 @@
 import argparse
-from email.charset import BASE64
+from unicodedata import decimal
 import uvicorn
 import os 
 import json
 import bpy
 from fastapi import FastAPI, File
-from shaderverse.api.model import Metadata, Trait, GlbFile
+from shaderverse.model import Metadata, Trait, GlbFile
 from typing import List
 import tempfile
 import base64
+import sys
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
@@ -93,16 +94,30 @@ async def generate():
 
     return glb
 
-if __name__ == "__main__":
-
+def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Python script to bootstrap Uvicorn')
 
     parser.add_argument('--port', 
                         help='the port', 
+                        dest='port', type=float, required=False,
                         default=8119)
 
-    args, unknown = parser.parse_known_args()
+    # args = parser.parse_args(sys.argv[sys.argv.index("--")+1:]) #read args past '--'
+    
+    python_args = sys.argv[sys.argv.index("--")+1:]
+    args, unknown = parser.parse_known_args(args=python_args)
+    return args
 
-    port = args.port
+# def get_port() -> int:
+
+#     # args = parser.parse_args(sys.argv[sys.argv.index("--")+1:]) #read args past '--'
+#     args = sys.argv
+#     port = args[args.index("--port")+1]
+#     print(port)
+#     return port
+
+
+if __name__ == "__main__":
+    args = get_args()
 
     uvicorn.run(app="shaderverse_blender:app", app_dir=SCRIPT_PATH, host="0.0.0.0", port=args.port)
