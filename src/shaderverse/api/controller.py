@@ -106,7 +106,7 @@ class BlenderInstance():
             f'http://localhost:{self.port}/{action}')
         return response
 
-
+sessions: Dict[UUID4, BlenderInstance] = {}
 
 def start(blender_binary_path: str, blend_file: str,):
     global proxy
