@@ -6,13 +6,9 @@ import site
 import sys
 import os
 import pathlib
-from ..nft import NFT
 
 
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
-
-
-
 
 
 class SHADERVERSE_PG_restrictions_item(bpy.types.PropertyGroup):
