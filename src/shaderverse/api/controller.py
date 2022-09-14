@@ -1,7 +1,8 @@
 from typing import Dict, List
+from urllib import response
 from fastapi import FastAPI, Request
 from pydantic import UUID4, BaseModel, Json
-from shaderverse.model import Metadata, Trait, GlbFile
+from shaderverse.model import Metadata, Trait, RenderedResults
 import subprocess
 import uuid
 import requests
@@ -11,8 +12,8 @@ import os
 import uvicorn
 import argparse
 import shaderverse
-from shaderverse.api.model import BlenderData, Session
-
+from shaderverse.api.model import BlenderData, Session, SessionData, Action
+import bpy
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 BLENDER_DATA_PATH = os.path.join(SCRIPT_PATH, "data", "blender_data.json")
@@ -37,8 +38,6 @@ def load_proxy_session()-> BlenderData:
 
 proxy = None
 
-
-sessions = {}
 
 class Proxy():
     def __init__(self, blender_binary_path: str, blend_file: str, )-> None:
@@ -99,11 +98,11 @@ class BlenderInstance():
         self.process = subprocess.Popen(command, shell=True)
         save_proxy_session(blender_data=blender_data)
 
-    def run(self, action):
+    def run(self, action, params: List[Metadata] | None):
 
         # I would recommend using aiohttp library to make this asynchronous
         response = requests.post(
-            f'http://localhost:{self.port}/{action}')
+            f'http://localhost:{self.port}/{action}', params=params)
         return response
 
 sessions: Dict[UUID4, BlenderInstance] = {}
@@ -133,6 +132,11 @@ async def start_session():
 
     return session
 
+@app.post("/active")
+def active():
+    return {"object": bpy.context.active_object.name}
+
+
 # @app.get("/")
 # async def list_sessions():
 #     global sessions
@@ -145,33 +149,50 @@ async def start_session():
 
 
 # client identifies itself with session ID, and specifies the action they want to preform. This will be useful for most of the actions,
-@app.post("/perform_action/{action}/{session_id}")
-async def perform_action(action: str, session_id: UUID4):
-    global sessions
-    # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
-    print(f"session_id: {session_id}")
-    print(sessions[session_id])
-    # params_dict = json.loads(params)
-    # params_dict = {}
-    # params_dict["filename"] = filename
-    # params_json = json.dumps(params_dict)
-    response = sessions[session_id].run(action)
+# @app.post("/perform_action/{action}/{session_id}")
+# async def perform_action(action: str, session_id: UUID4):
+#     global sessions
+#     # params: Json = await request.json() # request body may contain additional properties for the action, such as parametres for operators
+#     print(f"session_id: {session_id}")
+#     print(sessions[session_id])
+#     # params_dict = json.loads(params)
+#     # params_dict = {}
+#     # params_dict["filename"] = filename
+#     # params_json = json.dumps(params_dict)
+#     response = sessions[session_id].run(action)
+#     response_dict = response.json()
+
+#     match action:
+#         case "generate":
+#             result = Metadata(**response_dict)
+#         case "glb":
+#             result = GlbFile(**response_dict)
+#         case "session":
+#             result = SessionData(**response_dict)
+#         case _:
+#             result = {
+#                 "status": "action not found"  # we return the session ID to the client
+#             }
+#     return result
+
+#     # this should also be made async, see comment in the run method
+#     return 
+
+
+async def perform_action(action: Action, session_id: UUID4, params: List[Metadata] | None):
+    response = sessions[session_id].run("render_glb")
     response_dict = response.json()
+    return response_dict
 
-    match action:
-        case "generate":
-            result = Metadata(**response_dict)
-        case "glb":
-            result = GlbFile(**response_dict)
-        case _:
-            result = {
-                "status": "action not found"  # we return the session ID to the client
-            }
+
+@app.post("/render_glb/{session_id}")
+async def render_glb(session_id: UUID4, batch: List[Metadata]):
+    action = Action.render_glb
+    response_dict = perform_action(action=action, session_id=session_id, params= batch)
+    result = RenderedResults(**response_dict)
     return result
-
-    # this should also be made async, see comment in the run method
-    return 
-
+    
+  
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Python script to bootstrap Uvicorn')
