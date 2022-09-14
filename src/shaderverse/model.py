@@ -6,14 +6,13 @@ class Trait(BaseModel):
     value: str
 
 class Metadata(BaseModel):
+    id: int = None
     filename: str = None
     traits: List[Trait] = None
 
-class GlbFile(BaseModel):
+class RenderedResults(BaseModel):
+    metadata: Metadata
     buffer: bytes = None
-
-
-
 class GenRange(BaseModel):
     """ Generated range for renders"""
     start: int
