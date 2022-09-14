@@ -1,6 +1,7 @@
 import bpy
 import json
 import random
+import shaderverse
 
 class NFT():
     # metadata = {}
@@ -28,13 +29,6 @@ class NFT():
     # def render_jpeg(self):
     #     pass
 
-    def generate_random_range(self, item_ref, precision):
-        start = item_ref.min_value
-        stop = item_ref.max_value
-        start = round(start / precision)
-        stop = round(stop / precision)
-        generated_int = random.randint(start, stop)
-        return generated_int * precision
 
 
     all_objects =  None
@@ -52,7 +46,7 @@ class NFT():
         self.collection = []
         self.attributes = []
 
-    def generate_random_range(self, item_ref, precision):
+    def generate_random_range(self, item_ref: bpy.types.NodeSocketInterfaceFloat, precision):
         start = item_ref.min_value
         stop = item_ref.max_value
         start = round(start / precision)
@@ -61,7 +55,7 @@ class NFT():
         return generated_int * precision
 
 
-    def find_geometry_nodes(self, object_ref):
+    def find_geometry_nodes(self, object_ref: bpy.types.Object):
 
         geometry_node_objects = []
         object_name = object_ref.name
@@ -135,18 +129,18 @@ class NFT():
                 return True
         return False
 
-    def select_object_from_collection(self, collection):
+    def select_object_from_collection(self, collection: bpy.types.Collection):
         collection_object_names = []
         collection_object_weights = []
         active_geometry_node_objects = []
         
         for obj in collection.objects:
-            restrictions = obj.shaderverse.restrictions
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
+            restrictions = shaderverse_properties.restrictions
 
             if (len(restrictions) < 1) or (self.is_item_restriction_found(restrictions)):
-            
                 collection_object_names.append(obj.name)
-                collection_object_weights.append(obj.shaderverse.weight)
+                collection_object_weights.append(shaderverse_properties.weight)
 
         try:    
             selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
@@ -154,25 +148,27 @@ class NFT():
             raise Exception(f"{error}: Could not find at least one valid object in {collection.name}")
         return bpy.data.objects[selected_object_name]
 
-    def get_metadata_object_from_collection(self, collection):
+    def get_metadata_object_from_collection(self, collection: bpy.types.Collection):
         """ Return the first object in a collection that has either a custom weight or restriction """
         for obj in collection.all_objects:
-            if obj.shaderverse.weight < 1 or (len (obj.shaderverse.restrictions) > 0):
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
+            if shaderverse_properties.weight < 1 or (len (shaderverse_properties.restrictions) > 0):
                 return obj
         return collection.all_objects[0]
 
-    def select_collection_based_on_object(self, collection):
+    def select_collection_based_on_object(self, collection: bpy.types.Collection):
         collection_objects = []
         collection_object_weights = []
         
         for child_collection in collection.children:
             obj = self.get_metadata_object_from_collection(child_collection)
-            restrictions = obj.shaderverse.restrictions
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
+            restrictions = shaderverse_properties.restrictions
 
             if (len(restrictions) < 1) or (self.is_item_restriction_found(restrictions)):
 
                 collection_objects.append({"object_name": obj.name, "collection_name": child_collection.name})
-                collection_object_weights.append(obj.shaderverse.weight)
+                collection_object_weights.append(shaderverse_properties.weight)
         
         collection_object_names = [d['object_name'] for d in collection_objects]
         selected_object_name = random.choices(collection_object_names, weights=tuple(collection_object_weights), k=1)[0]
@@ -184,14 +180,15 @@ class NFT():
 
     def is_collection_none(self, collection):
         for obj in collection.all_objects.values():
-            if obj.shaderverse.metadata_is_none:
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
+            if shaderverse_properties.metadata_is_none:
                 return True
         return False
 
     def generate_metadata(self, node_object):
         modifier_name = node_object["modifier_name"]
         modifier = node_object["modifier_ref"]
-        node_group = modifier.node_group
+        node_group: bpy.types.GeometryNodeTree = modifier.node_group
         node_group_name = node_group.name
         object_name = node_object["object_name"]
         object_ref = bpy.data.objects[object_name]
@@ -267,7 +264,8 @@ class NFT():
         matched_object = None
         collection = bpy.data.collections[trait_type]
         for obj in collection.all_objects.values():
-            if obj.shaderverse.match_trait(trait_type, trait_value):
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
+            if shaderverse_properties.match_trait(trait_type, trait_value):
                 matched_object = obj
                 return matched_object
         return matched_object
@@ -276,7 +274,8 @@ class NFT():
         matched_collection = None
         collection = bpy.data.collections[trait_type]
         for obj in collection.all_objects.values():
-            if obj.shaderverse.match_trait(trait_type, trait_value):
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
+            if shaderverse_properties.match_trait(trait_type, trait_value):
                 matched_collection = obj.users_collection[0]
                 return matched_collection
         return matched_collection
@@ -322,10 +321,11 @@ class NFT():
                     modifier[item_input_id] = collection_ref
                         
 
-    def format_value(self, item):
+    def format_value(self, item: bpy.types.Object):
         if hasattr(item, "shaderverse"):
             #TODO handle prefix values for material names
-            return item.shaderverse.get_trait_value()
+            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = item.shaderverse 
+            return shaderverse_properties.get_trait_value()
         if hasattr(item, "name"):
             return item.name
         if type(item) is float:
@@ -350,7 +350,7 @@ class NFT():
 
     def run_metadata_generator(self):
         """find all geometry nodes and run metadata generator for those nodes """
-        main_geonodes_object =  bpy.context.scene.shaderverse.main_geonodes_object
+        main_geonodes_object: bpy.types.Object =  bpy.context.scene.shaderverse.main_geonodes_object
         main_geonodes = self.find_geometry_nodes(main_geonodes_object)
         for node in main_geonodes:
             self.generate_metadata(node)
@@ -374,7 +374,7 @@ class NFT():
             bpy.context.scene.collection.children.link(collection)
             
 
-    def is_animated_collection(self, collection):
+    def is_animated_collection(self, collection: bpy.types.Collection):
         found = False
         for obj in collection.objects:
             if obj.animation_data:
@@ -392,7 +392,7 @@ class NFT():
             animated_objects_collection.children.unlink(collection)
             bpy.data.collections.remove(collection)
             
-    def copy_to_animated_objects(self, other):
+    def copy_to_animated_objects(self, other: bpy.types.Collection):
         collection = bpy.data.collections["Animated Objects"]
         collection.children.link(other.copy())
 
