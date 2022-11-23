@@ -48,7 +48,7 @@ class Proxy():
         self.blender_binary_path = blender_binary_path
         self.blend_file = blend_file
         self.port = "8118"  # you don't need to generate this from ID or anything - just make sure the port is valid and unoccupied
-        self.script_path = os.path.join(SCRIPT_PATH, "controller.py")
+        self.script_path = os.path.join(SCRIPT_PATH, "blender_service.py")
         blender_data: BlenderData = BlenderData(blend_file=self.blend_file, blender_binary_path = self.blender_binary_path, next_port = int(self.port)+1)
         save_proxy_session(blender_data=blender_data)
 
@@ -60,7 +60,7 @@ class Proxy():
         #         raise Exception(f"process returned {self.process.returncode}")
 
 
-        command = [self.blender_binary_path, "--factory-startup", "--background", "--addons", "shaderverse", "--python", self.script_path]
+        command = [self.blender_binary_path, self.blend_file, "--factory-startup", "--background", "--addons", "shaderverse", "--python", self.script_path]
         self.process = subprocess.Popen(command, shell=True)
 
     

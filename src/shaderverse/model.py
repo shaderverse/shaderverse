@@ -18,7 +18,6 @@ class GenRange(BaseModel):
     start: int
     end: int
 
-
 # class Request(BaseModel):
 #     hooks: Optional[str]
 #     method: Optional[str]

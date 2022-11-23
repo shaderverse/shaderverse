@@ -19,6 +19,10 @@ class SessionStatus(str, Enum):
 class Action(str, Enum):
     render_glb = 'render_glb'
 
+class RenderedFile(BaseModel):
+    id: UUID4
+    file_path: str
+
 
 class SessionData(BaseModel):
     status: SessionStatus = "ready"
