@@ -9,6 +9,7 @@ class Metadata(BaseModel):
     id: int = None
     filename: str = None
     traits: List[Trait] = None
+    rendered_file_url: str = None
 
 class RenderedResults(BaseModel):
     metadata: Metadata
