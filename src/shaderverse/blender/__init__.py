@@ -729,11 +729,21 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
             print(f"Could not convert UV MAP for {obj.name}")
 
     def execute(self, context):
-        parent_node_object = context.scene.shaderverse.main_geonodes_object
-        self.realize_object(parent_node_object)
-        animated_objects = bpy.data.collections['Animated Objects'].all_objects
-        for obj in animated_objects:
-            self.realize_object(obj)
+
+        for obj in bpy.data.objects:
+            if obj.type == 'MESH' and obj.visible_get():
+                self.realize_object(obj)
+
+
+        # parent_node_object = context.scene.shaderverse.main_geonodes_object
+        # parent_node_collection = parent_node_object.users_collection[0]
+        # parent_node_objects = parent_node_collection.all_objects
+        # for obj in parent_node_objects:
+        #     self.realize_object(obj)
+
+        # animated_objects = bpy.data.collections['Animated Objects'].all_objects
+        # for obj in animated_objects:
+        #     self.realize_object(obj)
 
         return {'FINISHED'}
 
