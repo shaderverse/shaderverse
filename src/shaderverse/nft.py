@@ -282,6 +282,7 @@ class NFT():
         return matched_collection
 
 
+
     def set_node_inputs_from_metadata(self, node_object):
         modifier_name = node_object["modifier_name"]
         modifier = node_object["modifier_ref"]
@@ -320,6 +321,10 @@ class NFT():
                 if item_type == "COLLECTION":
                     collection_ref = self.match_collection_from_metadata(trait_type, trait_value)
                     modifier[item_input_id] = collection_ref
+
+                if item_type == "STRING":
+                    modifier[item_input_id] = str(trait_value)
+            
                         
 
     def format_value(self, item: bpy.types.Object):
