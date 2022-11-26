@@ -124,6 +124,7 @@ async def generate(nft: NFT = Depends(deps.get_nft)):
     metadata = Metadata(
         filename=bpy.data.filepath,traits=generated_metadata)
 
+
     print("NFT metadata")
     print(metadata)
     print("reverting file")
