@@ -342,7 +342,9 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
             print("Bootstrapping Shaderverse Server Instance")
             is_module_installation_complete = True
 
-        if not is_module_installation_complete: 
+        is_running_inside_blender = "Blender" in sys.executable
+
+        if not is_module_installation_complete and is_running_inside_blender: 
             from . import install_modules
             try:
                 install_modules.install_modules()
