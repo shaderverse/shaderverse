@@ -2,7 +2,7 @@ from typing import Dict, List
 from urllib import response
 from fastapi import FastAPI, Request
 from pydantic import UUID4, BaseModel, Json
-from shaderverse.model import Metadata, Trait, RenderedResults
+from shaderverse.model import Metadata, Attributes, RenderedResults
 import subprocess
 import uuid
 import requests

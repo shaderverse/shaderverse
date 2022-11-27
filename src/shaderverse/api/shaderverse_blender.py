@@ -5,7 +5,7 @@ import os
 import json
 import bpy
 from fastapi import FastAPI, File
-from shaderverse.model import Metadata, Trait, RenderedResults 
+from shaderverse.model import Metadata, Attributes, RenderedResults 
 from shaderverse.api.model import SessionData, SessionStatus
 from typing import List
 import tempfile
@@ -21,10 +21,10 @@ session = SessionData()
 async def generate():
     run_generate_operator = bpy.ops.shaderverse.generate()
 
-    generated_metadata: List[Trait] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+    generated_metadata: List[Attributes] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
     metadata = Metadata(
-        filename=bpy.data.filepath,traits=generated_metadata)
+        filename=bpy.data.filepath,attributes=generated_metadata)
 
     print(metadata)
     return metadata

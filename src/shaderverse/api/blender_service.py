@@ -3,7 +3,7 @@ import uvicorn
 import os 
 import json
 from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response
-from shaderverse.model import Metadata, Trait, RenderedResults
+from shaderverse.model import Metadata, Attributes, RenderedResults
 from shaderverse.api.model import SessionData, SessionStatus, RenderedFile
 from typing import Generator, List
 import tempfile
@@ -119,10 +119,10 @@ async def generate(nft: NFT = Depends(deps.get_nft)):
     print("NFT attributes after running generator")
     print(nft.attributes)
 
-    generated_metadata: List[Trait] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+    generated_metadata: List[Attributes] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
     metadata = Metadata(
-        filename=bpy.data.filepath,traits=generated_metadata)
+        filename=bpy.data.filepath,attributes=generated_metadata)
 
 
     print("NFT metadata")
@@ -144,9 +144,9 @@ async def handle_rendering(nft):
     nft.make_animated_objects_visible()
     bpy.ops.shaderverse.realize()
 
-    generated_metadata: List[Trait] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+    generated_metadata: List[Attributes] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
     metadata = Metadata(
-        filename=bpy.data.filepath,traits=generated_metadata)
+        filename=bpy.data.filepath,attributes=generated_metadata)
 
 
     temp_dir_name = tempfile.mkdtemp(prefix='shaderverse_')

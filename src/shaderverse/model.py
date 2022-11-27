@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Json
 from typing import Optional, List, Set
 
-class Trait(BaseModel):
+class Attributes(BaseModel):
     trait_type: str
     value: str
 
 class Metadata(BaseModel):
     id: int = None
     filename: str = None
-    traits: List[Trait] = None
+    attributes: List[Attributes] = None
     rendered_file_url: str = None
 
 class RenderedResults(BaseModel):
