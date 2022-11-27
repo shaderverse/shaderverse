@@ -3,7 +3,7 @@ from email.charset import BASE64
 import os 
 import json
 import bpy
-from .model import Metadata, Attributes, GlbFile, GenRange
+from .model import Metadata, Attribute, GlbFile, GenRange
 from typing import List
 import tempfile
 import base64
@@ -32,7 +32,7 @@ class Render():
         bpy.ops.shaderverse.generate()
         bpy.ops.shaderverse.realize()
 
-        generated_metadata: List[Attributes] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+        generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
         metadata = Metadata(
             filename=bpy.data.filepath,attributes=generated_metadata)
