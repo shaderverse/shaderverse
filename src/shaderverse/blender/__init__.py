@@ -713,27 +713,155 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
     bl_label = "Realize Geonode"
     bl_options = {'REGISTER', 'UNDO'}
 
+
     def realize_object(self, obj):
+        print(f"realizing: {obj.name}")
         obj.hide_set(False)
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
+        
+        parent = obj.parent
+        parent_bone = obj.parent_bone
+        parent_type = obj.parent_type
+        parent_vertices = obj.parent_vertices
+        
+        existing_meshes = self.get_visible_objects("MESH")    
+        
+        # handle realizing
         bpy.ops.object.duplicates_make_real()
         try:
             bpy.ops.object.convert(target='MESH')
         except:
             print(f"Could not convert mesh for {obj.name}")
 
+            
+        # look for new meshes
+        current_meshes = self.get_visible_objects("MESH")
+        
+        objects_to_process  = []
+
+        
+        for mesh in current_meshes:
+            if mesh not in existing_meshes:
+                objects_to_process.append(mesh)
+        
+        
+        objects_to_process.append(obj)
+        print(f"obj: {obj.name}, processing: {objects_to_process}")
+
+        for mesh_obj in objects_to_process:
+            
+            if parent:
+            
+                if parent.type == "ARMATURE":
+
+                    if parent_type == "BONE":
+                        self.handle_bone_parenting(mesh_obj, parent, parent_bone)
+                    
+                    if parent_type == "OBJECT":
+                        self.handle_object_parenting(mesh_obj, parent)
+            
+        # convert UV maps
         try:
             bpy.ops.geometry.attribute_convert(mode='UV_MAP')
         except:
             print(f"Could not convert UV MAP for {obj.name}")
 
-    def execute(self, context):
 
+
+    def reparent_mesh_to_armature(self, armature_obj):
+        ''' set the object of the armature modifier to the armature object, and add the armature modifier if it doesn't exist '''
+        for obj in armature_obj.children_recursive:
+            found_armature = False
+            for modifier in obj.modifiers:
+                if modifier.type == 'ARMATURE':
+                    found_armature = True
+                    modifier.object = armature_obj
+                    break
+             
+            if not found_armature:
+                armature_modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+                armature_modifier.object = armature_obj
+
+    def set_pose_position(self, armature_obj, pose_position):
+        ''' set the armature to rest position and reparent the mesh to the armature '''
+        armature = armature_obj.data
+        armature.pose_position = pose_position
+
+    def get_visible_objects(self, object_type):
+        objects = []
         for obj in bpy.data.objects:
-            if obj.type == 'MESH' and obj.visible_get():
-                self.realize_object(obj)
+            if obj.type == object_type and obj.visible_get():
+                objects.append(obj)
+        return objects
+        
+    
+    def handle_bone_parenting(self, source_obj, target_armature_obj, parent_bone):
+        """ parent object to bone of armature """
+        obj= source_obj
+        armature_obj = target_armature_obj
 
+        bpy.ops.object.select_all(action='DESELECT')
+
+        armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature_obj
+
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        armature_obj.data.edit_bones.active = armature_obj.data.edit_bones[parent_bone]
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        bpy.ops.object.select_all(action='DESELECT')  # deselect all objects
+        obj.select_set(True)
+        armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature_obj
+        # the active object will be the parent of all selected object
+
+        bpy.ops.object.parent_set(type='BONE', keep_transform=False)
+
+    def handle_object_parenting(self, source_obj, target_obj):
+        """ parent object to bone of armature """
+        obj= source_obj
+        parent_obj = target_obj
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+        parent_obj.select_set(True)
+        bpy.context.view_layer.objects.active = parent_obj
+
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+    def execute(self, context):
+        armatures_to_realize = self.get_visible_objects("ARMATURE")
+        mesh_objects_to_realize = self.get_visible_objects("MESH")
+        
+        print(f'starting with these meshes to process: {mesh_objects_to_realize}')
+            
+        # set pose position to rest
+        for obj in armatures_to_realize:
+            self.set_pose_position(obj, 'REST')
+        
+        # realize all visibile meshes
+        for obj in mesh_objects_to_realize:
+            self.realize_object(obj)
+
+        # reparent meshes to armatures
+        for obj in armatures_to_realize:
+            self.reparent_mesh_to_armature(obj)
+#        
+        # set pose position to pose
+        for obj in armatures_to_realize:
+            self.set_pose_position(obj, 'POSE')
+
+        # delete extra visible meshes that may have been created
+        # for obj in bpy.data.objects:
+        #     if obj.type == 'MESH' and obj.visible_get() and obj not in objects_to_realize:
+        #         bpy.data.objects.remove(obj, do_unlink=True)
 
         # parent_node_object = context.scene.shaderverse.main_geonodes_object
         # parent_node_collection = parent_node_object.users_collection[0]
@@ -746,6 +874,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         #     self.realize_object(obj)
 
         return {'FINISHED'}
+
 
 
 class SHADERVERSE_OT_generate(bpy.types.Operator):
