@@ -713,7 +713,6 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
     bl_label = "Realize Geonode"
     bl_options = {'REGISTER', 'UNDO'}
 
-
     def realize_object(self, obj):
         print(f"realizing: {obj.name}")
         obj.hide_set(False)
@@ -739,28 +738,31 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         current_meshes = self.get_visible_objects("MESH")
         
         objects_to_process  = []
-
+        
         
         for mesh in current_meshes:
             if mesh not in existing_meshes:
                 objects_to_process.append(mesh)
         
+        if len(objects_to_process) > 0:
+            
         
-        objects_to_process.append(obj)
-        print(f"obj: {obj.name}, processing: {objects_to_process}")
+            for mesh_obj in objects_to_process:
+                
+                if parent:
+                
+                    if parent.type == "ARMATURE":
 
-        for mesh_obj in objects_to_process:
-            
-            if parent:
-            
-                if parent.type == "ARMATURE":
-
-                    if parent_type == "BONE":
-                        self.handle_bone_parenting(mesh_obj, parent, parent_bone)
+                        if parent_type == "BONE":
+                            self.handle_bone_parenting(mesh_obj, parent, parent_bone)
+                        
+                        if parent_type == "OBJECT":
+                            self.handle_object_parenting(mesh_obj, parent)
+                
+            bpy.data.objects.remove(obj, do_unlink=True)
+            return
+                
                     
-                    if parent_type == "OBJECT":
-                        self.handle_object_parenting(mesh_obj, parent)
-            
         # convert UV maps
         try:
             bpy.ops.geometry.attribute_convert(mode='UV_MAP')
@@ -857,7 +859,15 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         # set pose position to pose
         for obj in armatures_to_realize:
             self.set_pose_position(obj, 'POSE')
-
+        
+        existing_objects = armatures_to_realize + mesh_objects_to_realize
+        current_meshes = self.get_visible_objects("MESH")
+        print(len(existing_objects))
+        print(len(current_meshes))
+                
+        
+        
+        
         # delete extra visible meshes that may have been created
         # for obj in bpy.data.objects:
         #     if obj.type == 'MESH' and obj.visible_get() and obj not in objects_to_realize:
@@ -874,7 +884,6 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         #     self.realize_object(obj)
 
         return {'FINISHED'}
-
 
 
 class SHADERVERSE_OT_generate(bpy.types.Operator):
