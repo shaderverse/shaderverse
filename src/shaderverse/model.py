@@ -9,7 +9,9 @@ class Metadata(BaseModel):
     id: int = None
     filename: str = None
     attributes: List[Attribute] = None
-    rendered_file_url: str = None
+    rendered_glb_url: str = None
+    rendered_usdz_url: str = None
+
 
 class RenderedResults(BaseModel):
     metadata: Metadata
