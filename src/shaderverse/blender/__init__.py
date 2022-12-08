@@ -790,7 +790,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         armature = armature_obj.data
         armature.pose_position = pose_position
 
-    def get_visible_objects(self, object_type):
+    def get_visible_objects(self, object_type) -> list[bpy.types.Object]:
         objects = []
         for obj in bpy.data.objects:
             if obj.type == object_type and obj.visible_get():
@@ -838,6 +838,16 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
 
         bpy.ops.object.select_all(action='DESELECT')
 
+    def is_geonode(self, obj: bpy.types.Object):
+        """ check if object is a geonode """
+        if obj.type == "MESH":
+            for modifier in obj.modifiers.values():
+                if modifier.type == "NODE":
+                    node_group = modifier.node_group
+                    if node_group.type == "GEOMETRY":
+                        return True
+        return False
+
     def execute(self, context):
         armatures_to_realize = self.get_visible_objects("ARMATURE")
         mesh_objects_to_realize = self.get_visible_objects("MESH")
@@ -862,12 +872,13 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         
         existing_objects = armatures_to_realize + mesh_objects_to_realize
         current_meshes = self.get_visible_objects("MESH")
-        print(len(existing_objects))
-        print(len(current_meshes))
-                
-        
-        
-        
+
+        # hide all geonodes
+        for obj in current_meshes:
+            if self.is_geonode(obj):
+                obj.hide_set(True)
+ 
+
         # delete extra visible meshes that may have been created
         # for obj in bpy.data.objects:
         #     if obj.type == 'MESH' and obj.visible_get() and obj not in objects_to_realize:
