@@ -314,6 +314,8 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
 
     preview_url: bpy.props.StringProperty(name="Shaderverse preview url")
 
+    is_api_running: bpy.props.BoolProperty(name="Is API running", default=False)
+
     enable_materials_export: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=True)
 
 class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
@@ -342,7 +344,14 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
             print("Bootstrapping Shaderverse Server Instance")
             is_module_installation_complete = True
 
-        is_running_inside_blender = "Blender" in sys.executable
+        is_running_inside_blender = True
+
+        try:
+            blender_server_environ = os.environ.get("BLENDER_SERVER")
+            if blender_server_environ == "1":
+                is_running_inside_blender = False
+        except:
+            pass
 
         if not is_module_installation_complete and is_running_inside_blender: 
             from . import install_modules
@@ -535,6 +544,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         from .. import custom_icons
+
         layout = self.layout 
         layout.separator(factor=1.0) 
 
@@ -542,10 +552,18 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
 
         layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
 
-        shaderverse_live_preview = SHADERVERSE_OT_live_preview
+        # shaderverse_live_preview = SHADERVERSE_OT_live_preview
 
-        layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
+        # layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
 
+
+        # display start or stop api button
+        if not bpy.context.scene.shaderverse.is_api_running:
+            shaderverse_start_api = SHADERVERSE_OT_start_api
+            layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
+        else:
+            shaderverse_stop_api = SHADERVERSE_OT_stop_api
+            layout.operator(shaderverse_stop_api.bl_idname, text= shaderverse_stop_api.bl_label, icon="CONSOLE", emboss=True)
 
         
 
@@ -930,6 +948,30 @@ class SHADERVERSE_OT_live_preview(bpy.types.Operator):
         from . import server
         context = bpy.context
         server.start_server(live_preview=True)
+        return {'FINISHED'}
+
+class SHADERVERSE_OT_start_api(bpy.types.Operator):
+    """ Start API"""
+    bl_idname = "shaderverse.start_api"
+    bl_label = "Start API"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        from . import server
+        context = bpy.context
+        server.start_server(live_preview=False)
+        return {'FINISHED'}
+
+class SHADERVERSE_OT_stop_api(bpy.types.Operator):
+    """ Stop API """
+    bl_idname = "shaderverse.stop_api"
+    bl_label = "Stop API"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        from . import server
+        context = bpy.context
+        server.kill_fastapi()
         return {'FINISHED'}
 
 class SHADERVERSE_OT_stop_live_preview(bpy.types.Operator):

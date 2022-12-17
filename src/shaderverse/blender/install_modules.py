@@ -3,9 +3,6 @@ import subprocess
 import sys
 import platform
 
-
-
-
 def install_modules():
     python_path = sys.executable
     required = {'uvicorn[standard]', 'fastapi', 'pydantic', 'pyngrok', 'psutil'}

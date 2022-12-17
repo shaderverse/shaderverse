@@ -14,6 +14,9 @@ def start_server(live_preview: bool = False):
     if not initialized:
         proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
                         blend_file=bpy.data.filepath)
+        api_url = f"http://localhost:{proxy.port}/docs"
+        print(f"Starting API on port {proxy.port}")
+        print(f"Blend File: {proxy.blend_file} ")
         if live_preview:
             tunnel = Tunnel()
             preview_url = f"https://shaderverse.com/preview/{tunnel.subdomain}"
@@ -22,7 +25,13 @@ def start_server(live_preview: bool = False):
                 webbrowser.open(bpy.context.scene.shaderverse.preview_url)
             except:
                 print(f"Unable to open preview url")
+        else:
+            try:
+                webbrowser.open(api_url)
+            except:
+                print(f"Unable to open api url")
     initialized = True
+    bpy.context.scene.shaderverse.is_api_running = True
 
 def kill_process_recursively(process):
     for proc in process.children(recursive=True):
@@ -42,6 +51,7 @@ def kill_fastapi():
     #     sessions.pop(key, None)
 
     initialized = False
+    bpy.context.scene.shaderverse.is_api_running = False
     
     
 def kill_tunnel():

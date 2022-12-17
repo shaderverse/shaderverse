@@ -10,7 +10,7 @@ bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 12, 17),
+  "version": (1, 0, 12, 27),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
@@ -55,7 +55,8 @@ classes = [
     blender.SHADERVERSE_OT_stop_live_preview,
     blender.SHADERVERSE_OT_install_modules,
     blender.SHADERVERSE_OT_render,
-    
+    blender.SHADERVERSE_OT_start_api,
+    blender.SHADERVERSE_OT_stop_api
 ]
 
 def register():
