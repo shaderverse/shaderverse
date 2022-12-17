@@ -1,14 +1,17 @@
 from pydantic import BaseModel, Json
 from typing import Optional, List, Set
 
-class Trait(BaseModel):
+class Attribute(BaseModel):
     trait_type: str
     value: str
 
 class Metadata(BaseModel):
     id: int = None
     filename: str = None
-    traits: List[Trait] = None
+    attributes: List[Attribute] = None
+    rendered_glb_url: str = None
+    rendered_usdz_url: str = None
+
 
 class RenderedResults(BaseModel):
     metadata: Metadata
@@ -17,7 +20,6 @@ class GenRange(BaseModel):
     """ Generated range for renders"""
     start: int
     end: int
-
 
 # class Request(BaseModel):
 #     hooks: Optional[str]

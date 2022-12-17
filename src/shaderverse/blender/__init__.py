@@ -314,6 +314,8 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
 
     preview_url: bpy.props.StringProperty(name="Shaderverse preview url")
 
+    is_api_running: bpy.props.BoolProperty(name="Is API running", default=False)
+
     enable_materials_export: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=True)
 
 class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
@@ -342,7 +344,16 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
             print("Bootstrapping Shaderverse Server Instance")
             is_module_installation_complete = True
 
-        if not is_module_installation_complete: 
+        is_running_inside_blender = True
+
+        try:
+            blender_server_environ = os.environ.get("BLENDER_SERVER")
+            if blender_server_environ == "1":
+                is_running_inside_blender = False
+        except:
+            pass
+
+        if not is_module_installation_complete and is_running_inside_blender: 
             from . import install_modules
             try:
                 install_modules.install_modules()
@@ -533,6 +544,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         from .. import custom_icons
+
         layout = self.layout 
         layout.separator(factor=1.0) 
 
@@ -540,10 +552,18 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
 
         layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
 
-        shaderverse_live_preview = SHADERVERSE_OT_live_preview
+        # shaderverse_live_preview = SHADERVERSE_OT_live_preview
 
-        layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
+        # layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
 
+
+        # display start or stop api button
+        if not bpy.context.scene.shaderverse.is_api_running:
+            shaderverse_start_api = SHADERVERSE_OT_start_api
+            layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
+        else:
+            shaderverse_stop_api = SHADERVERSE_OT_stop_api
+            layout.operator(shaderverse_stop_api.bl_idname, text= shaderverse_stop_api.bl_label, icon="CONSOLE", emboss=True)
 
         
 
@@ -712,26 +732,185 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def realize_object(self, obj):
+        print(f"realizing: {obj.name}")
         obj.hide_set(False)
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
+        
+        parent = obj.parent
+        parent_bone = obj.parent_bone
+        parent_type = obj.parent_type
+        parent_vertices = obj.parent_vertices
+        
+        existing_meshes = self.get_visible_objects("MESH")    
+        
+        # handle realizing
         bpy.ops.object.duplicates_make_real()
         try:
             bpy.ops.object.convert(target='MESH')
         except:
             print(f"Could not convert mesh for {obj.name}")
 
+            
+        # look for new meshes
+        current_meshes = self.get_visible_objects("MESH")
+        
+        objects_to_process  = []
+        
+        
+        for mesh in current_meshes:
+            if mesh not in existing_meshes:
+                objects_to_process.append(mesh)
+        
+        if len(objects_to_process) > 0:
+            
+        
+            for mesh_obj in objects_to_process:
+                
+                if parent:
+                
+                    if parent.type == "ARMATURE":
+
+                        if parent_type == "BONE":
+                            self.handle_bone_parenting(mesh_obj, parent, parent_bone)
+                        
+                        if parent_type == "OBJECT":
+                            self.handle_object_parenting(mesh_obj, parent)
+                
+            bpy.data.objects.remove(obj, do_unlink=True)
+            return
+                
+                    
+        # convert UV maps
         try:
             bpy.ops.geometry.attribute_convert(mode='UV_MAP')
         except:
             print(f"Could not convert UV MAP for {obj.name}")
 
+
+
+    def reparent_mesh_to_armature(self, armature_obj):
+        ''' set the object of the armature modifier to the armature object, and add the armature modifier if it doesn't exist '''
+        for obj in armature_obj.children_recursive:
+            found_armature = False
+            for modifier in obj.modifiers:
+                if modifier.type == 'ARMATURE':
+                    found_armature = True
+                    modifier.object = armature_obj
+                    break
+             
+            if not found_armature:
+                armature_modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+                armature_modifier.object = armature_obj
+
+    def set_pose_position(self, armature_obj, pose_position):
+        ''' set the armature to rest position and reparent the mesh to the armature '''
+        armature = armature_obj.data
+        armature.pose_position = pose_position
+
+    def get_visible_objects(self, object_type) -> list[bpy.types.Object]:
+        objects = []
+        for obj in bpy.data.objects:
+            if obj.type == object_type and obj.visible_get():
+                objects.append(obj)
+        return objects
+        
+    
+    def handle_bone_parenting(self, source_obj, target_armature_obj, parent_bone):
+        """ parent object to bone of armature """
+        obj= source_obj
+        armature_obj = target_armature_obj
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+        armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature_obj
+
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        armature_obj.data.edit_bones.active = armature_obj.data.edit_bones[parent_bone]
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        bpy.ops.object.select_all(action='DESELECT')  # deselect all objects
+        obj.select_set(True)
+        armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature_obj
+        # the active object will be the parent of all selected object
+
+        bpy.ops.object.parent_set(type='BONE', keep_transform=False)
+
+    def handle_object_parenting(self, source_obj, target_obj):
+        """ parent object to bone of armature """
+        obj= source_obj
+        parent_obj = target_obj
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+        parent_obj.select_set(True)
+        bpy.context.view_layer.objects.active = parent_obj
+
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+    def is_geonode(self, obj: bpy.types.Object):
+        """ check if object is a geonode """
+        if obj.type == "MESH":
+            for modifier in obj.modifiers.values():
+                if modifier.type == "NODE":
+                    node_group = modifier.node_group
+                    if node_group.type == "GEOMETRY":
+                        return True
+        return False
+
     def execute(self, context):
-        parent_node_object = context.scene.shaderverse.main_geonodes_object
-        self.realize_object(parent_node_object)
-        animated_objects = bpy.data.collections['Animated Objects'].all_objects
-        for obj in animated_objects:
+        armatures_to_realize = self.get_visible_objects("ARMATURE")
+        mesh_objects_to_realize = self.get_visible_objects("MESH")
+        
+        print(f'starting with these meshes to process: {mesh_objects_to_realize}')
+            
+        # set pose position to rest
+        for obj in armatures_to_realize:
+            self.set_pose_position(obj, 'REST')
+        
+        # realize all visibile meshes
+        for obj in mesh_objects_to_realize:
             self.realize_object(obj)
+
+        # reparent meshes to armatures
+        for obj in armatures_to_realize:
+            self.reparent_mesh_to_armature(obj)
+#        
+        # set pose position to pose
+        for obj in armatures_to_realize:
+            self.set_pose_position(obj, 'POSE')
+        
+        existing_objects = armatures_to_realize + mesh_objects_to_realize
+        current_meshes = self.get_visible_objects("MESH")
+
+        # hide all geonodes
+        for obj in current_meshes:
+            if self.is_geonode(obj):
+                obj.hide_set(True)
+ 
+
+        # delete extra visible meshes that may have been created
+        # for obj in bpy.data.objects:
+        #     if obj.type == 'MESH' and obj.visible_get() and obj not in objects_to_realize:
+        #         bpy.data.objects.remove(obj, do_unlink=True)
+
+        # parent_node_object = context.scene.shaderverse.main_geonodes_object
+        # parent_node_collection = parent_node_object.users_collection[0]
+        # parent_node_objects = parent_node_collection.all_objects
+        # for obj in parent_node_objects:
+        #     self.realize_object(obj)
+
+        # animated_objects = bpy.data.collections['Animated Objects'].all_objects
+        # for obj in animated_objects:
+        #     self.realize_object(obj)
 
         return {'FINISHED'}
 
@@ -769,6 +948,30 @@ class SHADERVERSE_OT_live_preview(bpy.types.Operator):
         from . import server
         context = bpy.context
         server.start_server(live_preview=True)
+        return {'FINISHED'}
+
+class SHADERVERSE_OT_start_api(bpy.types.Operator):
+    """ Start API"""
+    bl_idname = "shaderverse.start_api"
+    bl_label = "Start API"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        from . import server
+        context = bpy.context
+        server.start_server(live_preview=False)
+        return {'FINISHED'}
+
+class SHADERVERSE_OT_stop_api(bpy.types.Operator):
+    """ Stop API """
+    bl_idname = "shaderverse.stop_api"
+    bl_label = "Stop API"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        from . import server
+        context = bpy.context
+        server.kill_fastapi()
         return {'FINISHED'}
 
 class SHADERVERSE_OT_stop_live_preview(bpy.types.Operator):

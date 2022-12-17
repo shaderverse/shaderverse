@@ -273,12 +273,14 @@ class NFT():
     def match_collection_from_metadata(self, trait_type, trait_value):
         matched_collection = None
         collection = bpy.data.collections[trait_type]
-        for obj in collection.all_objects.values():
-            shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
-            if shaderverse_properties.match_trait(trait_type, trait_value):
-                matched_collection = obj.users_collection[0]
+
+        for collection in bpy.data.collections:
+            if collection.name.strip().lower() == trait_value.strip().lower():
+                matched_collection = collection
                 return matched_collection
+        
         return matched_collection
+
 
 
     def set_node_inputs_from_metadata(self, node_object):
@@ -319,6 +321,10 @@ class NFT():
                 if item_type == "COLLECTION":
                     collection_ref = self.match_collection_from_metadata(trait_type, trait_value)
                     modifier[item_input_id] = collection_ref
+
+                if item_type == "STRING":
+                    modifier[item_input_id] = str(trait_value)
+            
                         
 
     def format_value(self, item: bpy.types.Object):

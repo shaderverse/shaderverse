@@ -2,7 +2,7 @@ from typing import Dict, List
 from urllib import response
 from fastapi import FastAPI, Request
 from pydantic import UUID4, BaseModel, Json
-from shaderverse.model import Metadata, Trait, RenderedResults
+from shaderverse.model import Metadata, Attribute, RenderedResults
 import subprocess
 import uuid
 import requests
@@ -14,6 +14,7 @@ import argparse
 import shaderverse
 from shaderverse.api.model import BlenderData, Session, SessionData, Action
 import bpy
+import sys
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 BLENDER_DATA_PATH = os.path.join(SCRIPT_PATH, "data", "blender_data.json")
@@ -44,13 +45,15 @@ class Proxy():
         """ 
         Initializes the server 
         """
-        print("starting server")
         self.blender_binary_path = blender_binary_path
         self.blend_file = blend_file
         self.port = "8118"  # you don't need to generate this from ID or anything - just make sure the port is valid and unoccupied
-        self.script_path = os.path.join(SCRIPT_PATH, "controller.py")
+        self.script_path = os.path.join(SCRIPT_PATH, "blender_service.py")
         blender_data: BlenderData = BlenderData(blend_file=self.blend_file, blender_binary_path = self.blender_binary_path, next_port = int(self.port)+1)
         save_proxy_session(blender_data=blender_data)
+        os.environ["BLEND_FILE"] = self.blend_file
+
+    
 
         # try:
         #     python_command = [sys.executable, self.script_path]
@@ -60,7 +63,10 @@ class Proxy():
         #         raise Exception(f"process returned {self.process.returncode}")
 
 
-        command = [self.blender_binary_path, "--factory-startup", "--background", "--addons", "shaderverse", "--python", self.script_path]
+        # command = [self.blender_binary_path, self.blend_file, "--factory-startup", "--background", "--addons", "shaderverse", "--python", self.script_path]
+
+        command = [self.blender_binary_path, self.blend_file, "--background",  "--python", self.script_path, "--", "--port", self.port]
+        # command = [sys.executable, self.script_path]
         self.process = subprocess.Popen(command, shell=True)
 
     
