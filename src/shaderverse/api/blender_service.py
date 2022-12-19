@@ -241,7 +241,7 @@ def run_generator(nft: NFT):
 
 
 
-def export_glb_file(glb_filename: str):
+async def export_glb_file(glb_filename: str):
         bpy.ops.export_scene.gltf(filepath=glb_filename, check_existing=False, export_format='GLB', ui_tab='GENERAL', export_copyright='', export_image_format='AUTO', export_texcoords=True, export_normals=True, export_draco_mesh_compression_enable=False, export_tangents=False, export_materials='EXPORT', export_colors=True, use_mesh_edges=False, use_mesh_vertices=False, export_cameras=False, use_selection=False, use_visible=True, use_renderable=True, use_active_collection=False, export_extras=False, export_yup=True, export_apply=False, export_animations=True, export_frame_range=True, export_frame_step=1, export_force_sampling=True, export_nla_strips=True, export_def_bones=False, export_current_frame=False, export_skins=True, export_all_influences=False, export_morph=True, export_morph_normal=True, export_morph_tangent=False, export_lights=False, export_anim_single_armature=True)
 
 @app.on_event("startup")
@@ -299,6 +299,7 @@ def get_rendered_file(file_id: str):
     print(f"file_path: {file_path}")
     return GlbResponse(str(file_path))
 
+
 async def handle_rendering(nft):
     nft.update_geonodes_from_metadata()
     # nft.make_animated_objects_visible()
@@ -311,8 +312,8 @@ async def handle_rendering(nft):
     
     temp_dir_name = tempfile.gettempdir()
     temp_file_name = f"{next(tempfile._get_candidate_names())}.glb"
-    glb_temp_file_name = os.path.join(temp_dir_name,temp_file_name)
-    export_glb_file(glb_temp_file_name)
+    temp_file_path = os.path.join(temp_dir_name,temp_file_name)
+    
 
 
     # rendered_file = RenderedFile(id=uuid4(),file_path=glb_temp_file_name)
@@ -321,9 +322,8 @@ async def handle_rendering(nft):
 
 
     # rendered_files.append(rendered_file)
-    print("reverting file")
-    bpy.ops.wm.revert_mainfile()
-    return (glb_temp_file_name, metadata)
+
+    return (temp_file_path, metadata)
 
 async def make_glb_response(rendered_file: RenderedFile):
     return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
@@ -332,6 +332,9 @@ async def make_glb_response(rendered_file: RenderedFile):
 async def render_glb(metadata: Metadata, background_task: BackgroundTasks, nft: NFT = Depends(deps.get_nft)):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
     rendered_glb_file, metadata = await handle_rendering(nft)
+    await export_glb_file(rendered_glb_file)
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
 
 
     # background_task.add_task(upload_file, rendered_glb_file)
