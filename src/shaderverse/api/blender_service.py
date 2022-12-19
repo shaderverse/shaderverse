@@ -291,13 +291,13 @@ class GlbResponse(FileResponse):
 
 
 
-@app.get("/rendered/{file_id}", response_class=GlbResponse)
+@app.get("/rendered/{file_id}", response_class=FileResponse)
 def get_rendered_file(file_id: str):
     """Get a rendered file"""
     temp_dir = tempfile.gettempdir()
     file_path = Path(temp_dir, file_id)
     print(f"file_path: {file_path}")
-    return GlbResponse(str(file_path))
+    return FileResponse(str(file_path))
 
 
 async def handle_rendering(nft):
