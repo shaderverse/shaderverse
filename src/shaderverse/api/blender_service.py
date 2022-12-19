@@ -2,7 +2,7 @@ import argparse
 import uvicorn
 import os 
 import json
-from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response
+from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response, HTTPException
 from shaderverse.model import Metadata, Attribute, RenderedResults
 from shaderverse.api.model import SessionData, SessionStatus, RenderedFile
 from typing import Generator, List
@@ -363,7 +363,30 @@ async def render_glb(metadata: Metadata, background_task: BackgroundTasks, nft: 
     # return file_response
 
 
+async def export_vrm_file(rendered_file):
+    bpy.ops.export_scene.vrm(filepath=rendered_file)
 
+
+@app.post("/render_vrm", response_model=Metadata)
+async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, nft: NFT = Depends(deps.get_nft)):
+    is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
+    if not is_vrm_installed:
+        raise HTTPException(status_code=404, detail="VRM addon not installed")
+    
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
+    rendered_file, metadata = await handle_rendering(nft)
+    await export_vrm_file(rendered_file)
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
+
+    rendered_file_name = Path(rendered_file).name
+    rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
+    metadata.rendered_file_url = rendered_file_url
+    # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
+
+
+    return metadata 
+    
 
 
 
