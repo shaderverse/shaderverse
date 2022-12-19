@@ -10,7 +10,7 @@ bl_info = {
   "name": "Shaderverse",
   "description": "Create parametricly driven NFTs using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 12, 28),
+  "version": (1, 0, 12, 29),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",

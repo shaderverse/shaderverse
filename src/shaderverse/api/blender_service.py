@@ -300,6 +300,13 @@ def get_rendered_file(file_id: str):
     return FileResponse(str(file_path))
 
 
+def generate_filepath(extension: str) -> str:
+    """ Generate a temporary file path with the given extension"""
+    temp_dir_name = tempfile.gettempdir()
+    temp_file_name = f"{next(tempfile._get_candidate_names())}.{extension}"
+    temp_file_path = os.path.join(temp_dir_name,temp_file_name)
+    return temp_file_path
+
 async def handle_rendering(nft):
     nft.update_geonodes_from_metadata()
     # nft.make_animated_objects_visible()
@@ -310,10 +317,6 @@ async def handle_rendering(nft):
         filename=bpy.data.filepath,attributes=generated_metadata)
 
     
-    temp_dir_name = tempfile.gettempdir()
-    temp_file_name = f"{next(tempfile._get_candidate_names())}.glb"
-    temp_file_path = os.path.join(temp_dir_name,temp_file_name)
-    
 
 
     # rendered_file = RenderedFile(id=uuid4(),file_path=glb_temp_file_name)
@@ -323,7 +326,7 @@ async def handle_rendering(nft):
 
     # rendered_files.append(rendered_file)
 
-    return (temp_file_path, metadata)
+    return (metadata)
 
 async def make_glb_response(rendered_file: RenderedFile):
     return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
@@ -331,7 +334,8 @@ async def make_glb_response(rendered_file: RenderedFile):
 @app.post("/render_glb", response_model=Metadata)
 async def render_glb(metadata: Metadata, background_task: BackgroundTasks, nft: NFT = Depends(deps.get_nft)):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    rendered_glb_file, metadata = await handle_rendering(nft)
+    metadata = await handle_rendering(nft)
+    rendered_glb_file = generate_filepath("glb")
     await export_glb_file(rendered_glb_file)
     print("reverting file")
     bpy.ops.wm.revert_mainfile()
@@ -374,7 +378,8 @@ async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, nft: 
         raise HTTPException(status_code=404, detail="VRM addon not installed")
     
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    rendered_file, metadata = await handle_rendering(nft)
+    metadata = await handle_rendering(nft)
+    rendered_file = generate_filepath("vrm")
     await export_vrm_file(rendered_file)
     print("reverting file")
     bpy.ops.wm.revert_mainfile()
