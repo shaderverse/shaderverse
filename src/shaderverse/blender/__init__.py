@@ -314,8 +314,6 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
 
     preview_url: bpy.props.StringProperty(name="Shaderverse preview url")
 
-    is_api_running: bpy.props.BoolProperty(name="Is API running", default=False)
-
     enable_materials_export: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=True)
 
 class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
@@ -544,6 +542,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         from .. import custom_icons
+        from . import server
 
         layout = self.layout 
         layout.separator(factor=1.0) 
@@ -558,7 +557,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
 
 
         # display start or stop api button
-        if not bpy.context.scene.shaderverse.is_api_running:
+        if not server.is_initialized:
             shaderverse_start_api = SHADERVERSE_OT_start_api
             layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
         else:
