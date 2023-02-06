@@ -307,10 +307,11 @@ def generate_filepath(extension: str) -> str:
     temp_file_path = os.path.join(temp_dir_name,temp_file_name)
     return temp_file_path
 
-async def handle_rendering(nft):
+async def handle_rendering(nft, should_realize: bool = True):
     nft.update_geonodes_from_metadata()
     # nft.make_animated_objects_visible()
-    bpy.ops.shaderverse.realize()
+    if should_realize:
+        bpy.ops.shaderverse.realize() 
 
     generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
     metadata = Metadata(
@@ -367,6 +368,7 @@ async def render_glb(metadata: Metadata, background_task: BackgroundTasks, nft: 
     # return file_response
 
 
+
 async def export_vrm_file(rendered_file):
     bpy.ops.export_scene.vrm(filepath=rendered_file)
 
@@ -389,6 +391,35 @@ async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, nft: 
     metadata.rendered_file_url = rendered_file_url
     # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
 
+
+    return metadata 
+
+async def render_jpeg_file(rendered_file):
+    bpy.context.scene.render.filepath = rendered_file
+    bpy.ops.render.render(use_viewport = False, write_still=True)
+    
+
+@app.post("/render_jpeg", response_model=Metadata)
+async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90,  nft: NFT = Depends(deps.get_nft)):
+    bpy.context.scene.render.resolution_x = resolution_x
+    bpy.context.scene.render.resolution_y = resolution_y
+    bpy.data.scenes["Scene"].cycles.samples = samples
+    bpy.context.scene.render.resolution_percentage = 100
+    # TODO: makeformat an enum
+    bpy.context.scene.render.image_settings.file_format = file_format
+    if file_format == 'JPEG':
+        bpy.context.scene.render.image_settings.quality = quality
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
+    metadata = await handle_rendering(nft, should_realize=False)
+    rendered_file = generate_filepath("jpg")
+    await render_jpeg_file(rendered_file)
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
+
+    rendered_file_name = Path(rendered_file).name
+    rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
+    metadata.rendered_file_url = rendered_file_url
+  
 
     return metadata 
     
