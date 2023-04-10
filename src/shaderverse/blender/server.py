@@ -6,12 +6,12 @@ import psutil
 
 proxy: Proxy
 tunnel: Tunnel
-initialized = False
+is_initialized = False
 
 
 def start_server(live_preview: bool = False):
-    global initialized, proxy, tunnel
-    if not initialized:
+    global is_initialized, proxy, tunnel
+    if not is_initialized:
         proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
                         blend_file=bpy.data.filepath)
         api_url = f"http://localhost:{proxy.port}/docs"
@@ -30,8 +30,7 @@ def start_server(live_preview: bool = False):
                 webbrowser.open(api_url)
             except:
                 print(f"Unable to open api url")
-    initialized = True
-    bpy.context.scene.shaderverse.is_api_running = True
+    is_initialized = True
 
 def kill_process_recursively(process):
     for proc in process.children(recursive=True):
@@ -39,7 +38,7 @@ def kill_process_recursively(process):
     process.kill()
 
 def kill_fastapi():
-    global initialized
+    global is_initialized
     process = psutil.Process(proxy.process.pid)
     kill_process_recursively(process)
 
@@ -50,14 +49,13 @@ def kill_fastapi():
     #     kill_process_recursively(blender_process)
     #     sessions.pop(key, None)
 
-    initialized = False
-    bpy.context.scene.shaderverse.is_api_running = False
+    is_initialized = False
     
     
 def kill_tunnel():
-    global initialized
+    global is_initialized
     tunnel.kill()
-    initialized = False
+    is_initialized = False
 
 if __name__ == "__main__":
     start_server()

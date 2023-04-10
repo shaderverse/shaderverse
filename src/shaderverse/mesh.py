@@ -3,7 +3,7 @@ import json
 import random
 import shaderverse
 
-class NFT():
+class Mesh():
     # metadata = {}
     # directory = ""
     # id: int
@@ -306,10 +306,10 @@ class NFT():
                 item_input_id = item_ref.identifier 
 
                 if item_type == "VALUE":
-                    modifier[item_input_id] = trait_value
+                    modifier[item_input_id] = float(trait_value)
 
                 if item_type == "INT":
-                    modifier[item_input_id] = trait_value
+                    modifier[item_input_id] = int(trait_value)
                         
                 if item_type == "MATERIAL":
                     modifier[item_input_id] = bpy.data.materials[trait_value]

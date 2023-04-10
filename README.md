@@ -1,13 +1,13 @@
 # Shaderverse
-## _The NFT Generator for Blender_
+## _Generative Art for Blender_
 
 
-[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://app.travis-ci.com/github/shaderverse/shaderverse) [![Discord Server](https://img.shields.io/discord/883779420723249152?label=discord&logo=discord&logoColor=white)](https://discord.gg/QJwddbDabF)  [![](https://img.shields.io/twitter/follow/shaderverse?style=social)](https://twitter.com/shaderverse)
+ [![Discord Server](https://img.shields.io/discord/883779420723249152?label=discord&logo=discord&logoColor=white)](https://discord.gg/QJwddbDabF)  [![](https://img.shields.io/twitter/follow/shaderverse?style=social)](https://twitter.com/shaderverse)
 
 ![Shaderverse Demo](./.github/images/harmony-blue-apes.jpg)
 
 
-Shaderverse is an open-source add-on for vistual artists to make 3D NFT collections **without coding**
+Shaderverse is an open-source add-on for vistual artists to make procedurally generated art collections using Blender Geometry Nodes (**no coding required**)
 ## Getting Started
 
 
@@ -19,8 +19,8 @@ Shaderverse is an open-source add-on for vistual artists to make 3D NFT collecti
 
 ## Features
 
-- Generate NFT assets and metadata using the Blender UI
-- Use either hand-made meshes or parametrically modeled meshes with Blender Geometry Nodes
+- Generate 3D and 2D art and metadata using the Blender UI
+- Use either hand-made meshes or procedurally modeled meshes with Blender Geometry Nodes
 
 
 ## Requirements

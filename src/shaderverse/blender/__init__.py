@@ -314,8 +314,6 @@ class SHADERVERSE_PG_scene(bpy.types.PropertyGroup):
 
     preview_url: bpy.props.StringProperty(name="Shaderverse preview url")
 
-    is_api_running: bpy.props.BoolProperty(name="Is API running", default=False)
-
     enable_materials_export: bpy.props.BoolProperty(name="Run Custom Script Before Generation", default=True)
 
 class SHADERVERSE_PG_preferences(bpy.types.PropertyGroup):
@@ -537,13 +535,14 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Shaderverse"
-    bl_label = "Generated NFT Metadata"
+    bl_label = "Generated Metadata"
     bl_idname = "SHADERVERSE_PT_generated_metadata"
 
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         from .. import custom_icons
+        from . import server
 
         layout = self.layout 
         layout.separator(factor=1.0) 
@@ -558,7 +557,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
 
 
         # display start or stop api button
-        if not bpy.context.scene.shaderverse.is_api_running:
+        if not server.is_initialized:
             shaderverse_start_api = SHADERVERSE_OT_start_api
             layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
         else:
@@ -916,23 +915,23 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
 
 
 class SHADERVERSE_OT_generate(bpy.types.Operator):
-    """Generate new metadata and NFT preview"""
+    """Generate new metadata and mesh preview"""
     bl_idname = "shaderverse.generate"
-    bl_label = "Generate NFT"
+    bl_label = "Generate Mesh"
     bl_options = {'REGISTER', 'UNDO'}
 
 
     def execute(self, context):
-        from shaderverse.nft import NFT
-        nft = NFT()
+        from shaderverse.mesh import Mesh
+        mesh = Mesh()
         
-        nft.run_pre_generation_script()
-        nft.create_animated_objects_collection()
-        nft.reset_animated_objects()
-        nft.run_metadata_generator()
-        nft.update_geonodes_from_metadata()
-        nft.run_post_generation_script()
-        nft.make_animated_objects_visible()
+        mesh.run_pre_generation_script()
+        mesh.create_animated_objects_collection()
+        mesh.reset_animated_objects()
+        mesh.run_metadata_generator()
+        mesh.update_geonodes_from_metadata()
+        mesh.run_post_generation_script()
+        mesh.make_animated_objects_visible()
 
         return {'FINISHED'}
 

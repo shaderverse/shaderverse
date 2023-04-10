@@ -11,6 +11,7 @@ class Metadata(BaseModel):
     attributes: List[Attribute] = None
     rendered_glb_url: str = None
     rendered_usdz_url: str = None
+    rendered_file_url: str = None
 
 
 class RenderedResults(BaseModel):

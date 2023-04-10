@@ -8,7 +8,8 @@ csv/
 Thumbs.db
 **/__pycache__/
 *.zip
-rendered/
+rendered/**/*.jpg
 **/dist
 *.glb
 *.usdz
+**/renders/**/*.jpg
