@@ -394,6 +394,35 @@ async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, mesh:
 
     return metadata 
 
+
+
+
+async def export_fbx_file(rendered_file):
+    # bpy.ops.export_scene.fbx(filepath=rendered_file, use_visible=True, bake_anim=True, bake_anim_use_all_bones=True, bake_anim_use_nla_strips=True, bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1, embed_textures=True, axis_forward='-Z', axis_up='Y' )
+    bpy.ops.export_scene.fbx(filepath=rendered_file, use_visible=True, bake_space_transform=False, add_leaf_bones=False, path_mode="COPY", embed_textures=True, use_mesh_modifiers=False)
+
+
+@app.post("/render_fbx", response_model=Metadata)
+async def render_fbx(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
+    metadata = await handle_rendering(mesh)
+    rendered_file = generate_filepath("fbx")
+    await export_fbx_file(rendered_file)
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
+
+    rendered_file_name = Path(rendered_file).name
+    rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
+    metadata.rendered_file_url = rendered_file_url
+    # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
+
+
+    return metadata 
+
+
+
+
+
 async def render_jpeg_file(rendered_file):
     bpy.context.scene.render.filepath = rendered_file
     bpy.ops.render.render(use_viewport = False, write_still=True)
