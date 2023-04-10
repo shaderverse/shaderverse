@@ -535,7 +535,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Shaderverse"
-    bl_label = "Generated NFT Metadata"
+    bl_label = "Generated Metadata"
     bl_idname = "SHADERVERSE_PT_generated_metadata"
 
     def draw(self, context):
@@ -915,23 +915,23 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
 
 
 class SHADERVERSE_OT_generate(bpy.types.Operator):
-    """Generate new metadata and NFT preview"""
+    """Generate new metadata and mesh preview"""
     bl_idname = "shaderverse.generate"
-    bl_label = "Generate NFT"
+    bl_label = "Generate Mesh"
     bl_options = {'REGISTER', 'UNDO'}
 
 
     def execute(self, context):
-        from shaderverse.nft import NFT
-        nft = NFT()
+        from shaderverse.mesh import Mesh
+        mesh = Mesh()
         
-        nft.run_pre_generation_script()
-        nft.create_animated_objects_collection()
-        nft.reset_animated_objects()
-        nft.run_metadata_generator()
-        nft.update_geonodes_from_metadata()
-        nft.run_post_generation_script()
-        nft.make_animated_objects_visible()
+        mesh.run_pre_generation_script()
+        mesh.create_animated_objects_collection()
+        mesh.reset_animated_objects()
+        mesh.run_metadata_generator()
+        mesh.update_geonodes_from_metadata()
+        mesh.run_post_generation_script()
+        mesh.make_animated_objects_visible()
 
         return {'FINISHED'}
 

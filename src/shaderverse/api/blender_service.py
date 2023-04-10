@@ -9,7 +9,7 @@ from typing import Generator, List
 import tempfile
 import base64
 import sys
-from shaderverse.nft import NFT
+from shaderverse.mesh import Mesh
 from shaderverse.api import deps
 from shaderverse import bl_info
 import bpy
@@ -232,12 +232,12 @@ def get_export_materials_option()-> str:
         option = "NONE"
     return option
 
-def run_generator(nft: NFT):
-    nft.run_pre_generation_script()
-    nft.create_animated_objects_collection()
-    nft.reset_animated_objects()
-    nft.run_metadata_generator()
-    nft.run_post_generation_script()
+def run_generator(mesh: Mesh):
+    mesh.run_pre_generation_script()
+    mesh.create_animated_objects_collection()
+    mesh.reset_animated_objects()
+    mesh.run_metadata_generator()
+    mesh.run_post_generation_script()
 
 
 
@@ -257,16 +257,16 @@ async def shutdown_event():
 
 
 @app.post("/generate", response_model=Metadata)
-async def generate(nft: NFT = Depends(deps.get_nft)):
+async def generate(mesh: Mesh = Depends(deps.get_mesh)):
     print(bpy.context.active_object.name)
     print("NFT attributes before running generator")
-    print(nft.attributes)
-    run_generator(nft)
+    print(mesh.attributes)
+    run_generator(mesh)
     print(bpy.context.active_object.name)
 
 
     print("NFT attributes after running generator")
-    print(nft.attributes)
+    print(mesh.attributes)
 
     generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
@@ -333,9 +333,9 @@ async def make_glb_response(rendered_file: RenderedFile):
     return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
 
 @app.post("/render_glb", response_model=Metadata)
-async def render_glb(metadata: Metadata, background_task: BackgroundTasks, nft: NFT = Depends(deps.get_nft)):
+async def render_glb(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    metadata = await handle_rendering(nft)
+    metadata = await handle_rendering(mesh)
     rendered_glb_file = generate_filepath("glb")
     await export_glb_file(rendered_glb_file)
     print("reverting file")
@@ -374,13 +374,13 @@ async def export_vrm_file(rendered_file):
 
 
 @app.post("/render_vrm", response_model=Metadata)
-async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, nft: NFT = Depends(deps.get_nft)):
+async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
     is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
     if not is_vrm_installed:
         raise HTTPException(status_code=404, detail="VRM addon not installed")
     
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    metadata = await handle_rendering(nft)
+    metadata = await handle_rendering(mesh)
     rendered_file = generate_filepath("vrm")
     await export_vrm_file(rendered_file)
     print("reverting file")
@@ -400,7 +400,7 @@ async def render_jpeg_file(rendered_file):
     
 
 @app.post("/render_jpeg", response_model=Metadata)
-async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90,  nft: NFT = Depends(deps.get_nft)):
+async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90,  mesh: Mesh = Depends(deps.get_mesh)):
     bpy.context.scene.render.resolution_x = resolution_x
     bpy.context.scene.render.resolution_y = resolution_y
     bpy.data.scenes["Scene"].cycles.samples = samples
@@ -410,7 +410,7 @@ async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  res
     if file_format == 'JPEG':
         bpy.context.scene.render.image_settings.quality = quality
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    metadata = await handle_rendering(nft, should_realize=False)
+    metadata = await handle_rendering(mesh, should_realize=False)
     rendered_file = generate_filepath("jpg")
     await render_jpeg_file(rendered_file)
     print("reverting file")

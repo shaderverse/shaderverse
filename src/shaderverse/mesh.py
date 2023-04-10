@@ -3,7 +3,7 @@ import json
 import random
 import shaderverse
 
-class NFT():
+class Mesh():
     # metadata = {}
     # directory = ""
     # id: int

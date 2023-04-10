@@ -1,5 +1,5 @@
 import bpy
-from shaderverse.nft import NFT
+from shaderverse.mesh import Mesh
 import typing
 from typing import Generator
 from fastapi import BackgroundTasks
@@ -7,9 +7,9 @@ from starlette.concurrency import run_in_threadpool
 from starlette.background import BackgroundTask
 
 
-async def get_nft() -> Generator:
-    nft = NFT()
-    yield nft
+async def get_mesh() -> Generator:
+    mesh = Mesh()
+    yield mesh
 
 def get_bpy() -> Generator:
     yield bpy
