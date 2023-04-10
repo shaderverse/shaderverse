@@ -8,16 +8,16 @@ BPY_SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
 bl_info = {
   "name": "Shaderverse",
-  "description": "Create parametricly driven NFTs using Geometry Nodes",
+  "description": "Create generative art collections using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 12, 34),
+  "version": (1, 0, 12, 35),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
   "doc_url": "Shaderverse",
   "tracker_url": "https://github.com/shaderverse/shaderverse",
   "support": "COMMUNITY",
-  "category": "NFT"
+  "category": "procedural"
 }
 
 
