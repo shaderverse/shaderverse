@@ -358,6 +358,7 @@ async def render_glb(metadata: Metadata, background_task: BackgroundTasks, mesh:
     rendered_file_name = Path(rendered_glb_file).name
     rendered_glb_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
     metadata.rendered_glb_url = rendered_glb_url
+    metadata.rendered_file_url = rendered_glb_url
     # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
 
 
