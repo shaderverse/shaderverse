@@ -375,7 +375,8 @@ class SHADERVERSE_OT_render(bpy.types.Operator):
 
     def execute(self, context):
         from ..model import GenRange
-        from ..render import Render     
+        from ..render import Render
+        from . import server     
         range_start = context.scene.shaderverse.render.range_start
         range_end = context.scene.shaderverse.render.range_end
         basepath = context.scene.shaderverse.render.basepath
@@ -383,12 +384,12 @@ class SHADERVERSE_OT_render(bpy.types.Operator):
         
         gen_range: GenRange = GenRange(start=range_start, end=range_end)
         renderer = Render(gen_range=gen_range, basepath=basepath, batch_name=batch_name)
-        renderer.execute()
+        if not server.is_initialized:
+            server.start_server()
+        renderer.handle_execute(context)
+        return {'FINISHED'}
 
-        return{'FINISHED'}
-    
-      
-
+        
 class SHADERVERSE_PT_preferences(bpy.types.AddonPreferences):
     bl_idname = "shaderverse"
     modules_installed: bpy.props.BoolProperty(name="Python Modules Installed", default=False)

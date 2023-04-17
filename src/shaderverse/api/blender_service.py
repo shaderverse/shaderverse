@@ -400,7 +400,15 @@ async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, mesh:
 
 async def export_fbx_file(rendered_file):
     # bpy.ops.export_scene.fbx(filepath=rendered_file, use_visible=True, bake_anim=True, bake_anim_use_all_bones=True, bake_anim_use_nla_strips=True, bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1, embed_textures=True, axis_forward='-Z', axis_up='Y' )
-    bpy.ops.export_scene.fbx(filepath=rendered_file, use_visible=True, bake_space_transform=False, add_leaf_bones=False, path_mode="COPY", embed_textures=True, use_mesh_modifiers=False)
+    bpy.ops.export_scene.fbx(filepath=rendered_file,
+                    
+                              use_visible=True,
+                               use_selection=False, 
+                               mesh_smooth_type='FACE',
+                               
+                               bake_anim_use_nla_strips=True,
+                               bake_anim_use_all_bones=True,
+                             bake_space_transform=False, add_leaf_bones=False,  path_mode="COPY", embed_textures=True, use_mesh_modifiers=False, use_mesh_modifiers_render=False )
 
 
 @app.post("/render_fbx", response_model=Metadata)
