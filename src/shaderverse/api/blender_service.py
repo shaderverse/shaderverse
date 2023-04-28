@@ -402,19 +402,26 @@ async def export_fbx_file(rendered_file):
     # bpy.ops.export_scene.fbx(filepath=rendered_file, use_visible=True, bake_anim=True, bake_anim_use_all_bones=True, bake_anim_use_nla_strips=True, bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1, embed_textures=True, axis_forward='-Z', axis_up='Y' )
     bpy.ops.export_scene.fbx(filepath=rendered_file,
                     
-                              use_visible=True,
-                               use_selection=False, 
-                               mesh_smooth_type='FACE',
-                               
+                            
                                bake_anim_use_nla_strips=True,
                                bake_anim_use_all_bones=True,
-                             bake_space_transform=False, add_leaf_bones=False,  path_mode="COPY", embed_textures=True, use_mesh_modifiers=False, use_mesh_modifiers_render=False )
+                             add_leaf_bones=False,  path_mode="COPY", embed_textures=True, use_mesh_modifiers=True, use_mesh_modifiers_render=False )
 
+def delete_all_objects():
+    """ Delete all objects in the scene"""
+    for obj in bpy.data.objects:
+        bpy.data.objects.remove(obj)
 
 @app.post("/render_fbx", response_model=Metadata)
 async def render_fbx(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
     metadata = await handle_rendering(mesh)
+
+    rendered_glb_file = generate_filepath("glb")
+    await export_glb_file(rendered_glb_file)
+    print (Path(rendered_glb_file))
+    delete_all_objects()
+    bpy.ops.import_scene.gltf(filepath=rendered_glb_file)
     rendered_file = generate_filepath("fbx")
     await export_fbx_file(rendered_file)
     print("reverting file")

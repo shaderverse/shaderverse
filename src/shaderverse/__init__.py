@@ -10,7 +10,7 @@ bl_info = {
   "name": "Shaderverse",
   "description": "Create generative art collections using Geometry Nodes",
   "author": "Michael Gold",
-  "version": (1, 0, 12, 52),
+  "version": (1, 0, 12, 54),
   "blender": (3, 1, 0),
   "location": "Object > Modifier",
   "warning": "",
