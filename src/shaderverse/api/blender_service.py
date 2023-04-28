@@ -399,13 +399,17 @@ async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, mesh:
 
 
 async def export_fbx_file(rendered_file):
-    # bpy.ops.export_scene.fbx(filepath=rendered_file, use_visible=True, bake_anim=True, bake_anim_use_all_bones=True, bake_anim_use_nla_strips=True, bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1, embed_textures=True, axis_forward='-Z', axis_up='Y' )
+    # unpack all files so that textures are detected
+    bpy.ops.file.unpack_all(method='USE_LOCAL')
+    # use FBX export options with best Unreal compatibility 
     bpy.ops.export_scene.fbx(filepath=rendered_file,
-                    
-                            
-                               bake_anim_use_nla_strips=True,
-                               bake_anim_use_all_bones=True,
-                             add_leaf_bones=False,  path_mode="COPY", embed_textures=True, use_mesh_modifiers=True, use_mesh_modifiers_render=False )
+                            apply_scale_options='FBX_SCALE_UNITS',
+                            apply_unit_scale=False,
+                            mesh_smooth_type='EDGE',
+                            use_tspace=True,
+                            add_leaf_bones=False,  
+                            path_mode="COPY", 
+                            embed_textures=True )
 
 def delete_all_objects():
     """ Delete all objects in the scene"""
