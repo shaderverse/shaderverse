@@ -22,6 +22,7 @@ from fastapi.routing import APIRoute
 from typing import Callable
 from uuid import uuid4
 from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
 
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 
@@ -44,6 +45,8 @@ You can **generate new json metadata** based on assets in the Blender project fi
 You can **Render a GLB** from metadata json.
 
 """
+
+
 
 # class CustomRoute(APIRoute):
 #     def __init__(self, *args, **kwargs):
@@ -197,6 +200,9 @@ You can **Render a GLB** from metadata json.
 
 #     # return file_response
 
+def custom_generate_unique_id(route: APIRoute):
+    return f"{route.tags[0]}-{route.name}"
+
 
 
 app = FastAPI(
@@ -213,8 +219,24 @@ app = FastAPI(
         "name": "GPL-3.0 License",
         "url": "https://github.com/shaderverse/shaderverse/blob/main/LICENSEl",
     },
+    generate_unique_id_function=custom_generate_unique_id
 )
 
+origins = [
+    "http://shaderverse.com",
+    "https://shaderverse.com",
+    "http://localhost",
+    "http://localhost:8118",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def reset_scene():
@@ -256,7 +278,7 @@ async def shutdown_event():
 
 
 
-@app.post("/generate", response_model=Metadata)
+@app.post("/generate", response_model=Metadata, tags=["generator"])
 async def generate(mesh: Mesh = Depends(deps.get_mesh)):
     print(bpy.context.active_object.name)
     print("NFT attributes before running generator")
@@ -291,7 +313,7 @@ class GlbResponse(FileResponse):
 
 
 
-@app.get("/rendered/{file_id}", response_class=FileResponse)
+@app.get("/rendered/{file_id}", response_class=FileResponse, tags=["download"])
 def get_rendered_file(file_id: str):
     """Get a rendered file"""
     temp_dir = tempfile.gettempdir()
@@ -332,7 +354,7 @@ async def handle_rendering(nft, should_realize: bool = True):
 async def make_glb_response(rendered_file: RenderedFile):
     return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
 
-@app.post("/render_glb", response_model=Metadata)
+@app.post("/render_glb", response_model=Metadata, tags=["render"])
 async def render_glb(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
     metadata = await handle_rendering(mesh)
@@ -374,7 +396,7 @@ async def export_vrm_file(rendered_file):
     bpy.ops.export_scene.vrm(filepath=rendered_file)
 
 
-@app.post("/render_vrm", response_model=Metadata)
+@app.post("/render_vrm", response_model=Metadata, tags=["render"])
 async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
     is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
     if not is_vrm_installed:
@@ -416,7 +438,7 @@ def delete_all_objects():
     for obj in bpy.data.objects:
         bpy.data.objects.remove(obj)
 
-@app.post("/render_fbx", response_model=Metadata)
+@app.post("/render_fbx", response_model=Metadata, tags=["render"])
 async def render_fbx(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
     metadata = await handle_rendering(mesh)
@@ -448,7 +470,7 @@ async def render_jpeg_file(rendered_file):
     bpy.ops.render.render(use_viewport = False, write_still=True)
     
 
-@app.post("/render_jpeg", response_model=Metadata)
+@app.post("/render_jpeg", response_model=Metadata, tags=["render"])
 async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90,  mesh: Mesh = Depends(deps.get_mesh)):
     bpy.context.scene.render.resolution_x = resolution_x
     bpy.context.scene.render.resolution_y = resolution_y
