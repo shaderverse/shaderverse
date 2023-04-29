@@ -6,7 +6,7 @@ import site
 import sys
 import os
 import pathlib
-
+from typing import List
 
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 
@@ -740,7 +740,6 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         parent = obj.parent
         parent_bone = obj.parent_bone
         parent_type = obj.parent_type
-        parent_vertices = obj.parent_vertices
         
         existing_meshes = self.get_visible_objects("MESH")    
         
@@ -755,7 +754,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         # look for new meshes
         current_meshes = self.get_visible_objects("MESH")
         
-        objects_to_process  = []
+        objects_to_process : List(bpy.types.Object) = []
         
         
         for mesh in current_meshes:
@@ -816,7 +815,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         return objects
         
     
-    def handle_bone_parenting(self, source_obj, target_armature_obj, parent_bone):
+    def handle_bone_parenting(self, source_obj: bpy.types.Object, target_armature_obj: bpy.types.Armature, parent_bone: bpy.types.Bone):
         """ parent object to bone of armature """
         obj= source_obj
         armature_obj = target_armature_obj
@@ -837,6 +836,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         armature_obj.select_set(True)
         bpy.context.view_layer.objects.active = armature_obj
         # the active object will be the parent of all selected object
+        print(f"parenting {obj.name} to {armature_obj.name} bone {parent_bone}")
 
         bpy.ops.object.parent_set(type='BONE', keep_transform=False)
 
