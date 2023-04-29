@@ -2,6 +2,7 @@ import argparse
 import uvicorn
 import os 
 import json
+import requests
 from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response, HTTPException
 from shaderverse.model import Metadata, Attribute, RenderedResults
 from shaderverse.api.model import SessionData, SessionStatus, RenderedFile
@@ -15,7 +16,7 @@ from shaderverse import bl_info
 import bpy
 # import ray
 # from ray import serve
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import asyncio
 from fastapi.routing import APIRoute
 
@@ -306,8 +307,6 @@ def set_active_object(object_ref):
     bpy.context.view_layer.objects.active = object_ref
     
 
-
-
 class GlbResponse(FileResponse):
     media_type = "model/gltf-binary"
 
@@ -321,6 +320,21 @@ def get_rendered_file(file_id: str):
     print(f"file_path: {file_path}")
     return FileResponse(str(file_path))
 
+
+@app.get("/openapi", response_class=JSONResponse, tags=["download"])
+def get_openapi_json(request: Request):
+    """Reformat the OpenAPI JSON document"""
+    openapi_url = f"{request.base_url}openapi.json"
+    response = requests.get(openapi_url)
+    openapi_content = json.loads(response.content)
+    for path_data in openapi_content["paths"].values():
+        for operation in path_data.values():
+            tag = operation["tags"][0]
+            operation_id = operation["operationId"]
+            to_remove = f"{tag}-"
+            new_operation_id = operation_id[len(to_remove) :]
+            operation["operationId"] = new_operation_id
+    return JSONResponse(openapi_content)
 
 def generate_filepath(extension: str) -> str:
     """ Generate a temporary file path with the given extension"""
@@ -541,4 +555,4 @@ if __name__ == "__main__":
 
     # serve.run(FastAPIWrapper.bind())
 
-    uvicorn.run(app="blender_service:app", app_dir=SCRIPT_PATH, host="0.0.0.0", port=args.port)
+    uvicorn.run(app="blender_service:app", app_dir=SCRIPT_PATH, host="::", port=args.port)
