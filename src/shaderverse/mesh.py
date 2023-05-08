@@ -2,6 +2,7 @@ import bpy
 import json
 import random
 import shaderverse
+from typing import List
 
 class Mesh():
     # metadata = {}
@@ -86,13 +87,17 @@ class Mesh():
                     raise Exception(f"{error}: Could not find a Node Group type in object: {object_name}. Did you add an empty geometry node modifier?")
 
         return geometry_node_objects
+    
+    def refresh_geometry_node_objects(self):
+        """find all geonodes then update the node object based on the generated metadata"""
+        self.geometry_node_objects = []
+        for object_ref in self.all_objects:
+            self.geometry_node_objects += self.find_geometry_nodes(object_ref)
 
     def update_geonodes_from_metadata(self):
         """find all geonodes then update the node object based on the generated metadata"""
 
-        # find all geonode objects
-        for object_ref in self.all_objects:
-            self.geometry_node_objects += self.find_geometry_nodes(object_ref)
+        self.refresh_geometry_node_objects()
 
         # update all geonodes with metadata
         for node_object in self.geometry_node_objects:
@@ -280,7 +285,48 @@ class Mesh():
                 return matched_collection
         
         return matched_collection
+    
 
+    def get_main_node_group(self):
+        self.refresh_geometry_node_objects()
+
+        for node_object in self.geometry_node_objects:
+            if self.is_parent_node(node_object["object_name"]):
+                return node_object
+
+    def get_objects(self) -> List[bpy.types.Object]:
+        """Returns a list of objects that are passed into main node group"""
+        objects: List[bpy.types.Object] = []
+
+        main_node_group = self.get_main_node_group()
+        modifier: bpy.types.Modifier = main_node_group["modifier_ref"]
+        node_group: bpy.types.GeometryNodeTree = modifier.node_group
+
+        metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+
+        for attribute in metadata:
+            trait_type = attribute['trait_type']
+            trait_value = attribute['value']
+
+            # is this attribute in our node group?
+            if trait_type in node_group.inputs.keys():
+
+                item_ref = node_group.inputs[trait_type]
+
+                item_type = item_ref.type
+
+
+                if item_type == "OBJECT":
+                    object_ref = self.match_object_from_metadata(trait_type, trait_value)
+                    objects.append(object_ref)
+                
+                if item_type == "COLLECTION":
+                    collection_ref: bpy.types.Collection = self.match_collection_from_metadata(trait_type, trait_value)
+
+                    for obj in collection_ref.all_objects.values():
+                        objects.append(obj)
+             
+        return objects
 
 
     def set_node_inputs_from_metadata(self, node_object):
