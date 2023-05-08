@@ -281,11 +281,11 @@ async def shutdown_event():
 
 @app.post("/generate", response_model=Metadata, tags=["generator"])
 async def generate(mesh: Mesh = Depends(deps.get_mesh)):
-    print(bpy.context.active_object.name)
+    # print(bpy.context.active_object.name)
     print("NFT attributes before running generator")
     print(mesh.attributes)
     run_generator(mesh)
-    print(bpy.context.active_object.name)
+    # print(bpy.context.active_object.name)
 
 
     print("NFT attributes after running generator")
@@ -343,12 +343,23 @@ def generate_filepath(extension: str) -> str:
     temp_file_path = os.path.join(temp_dir_name,temp_file_name)
     return temp_file_path
 
-async def handle_rendering(nft, should_realize: bool = True):
-    nft.update_geonodes_from_metadata()
-    # nft.make_animated_objects_visible()
-    if should_realize:
-        bpy.ops.shaderverse.realize() 
+def set_object_visibility(mesh: Mesh):
+    """ Set the visibility of all objects in the generated mesh to be visible"""
+    objects = mesh.get_objects()
 
+    for obj in objects:
+        print(f"setting visibility of {obj.name} to visible")
+        obj.hide_set(False)
+        obj.hide_render = False
+    
+
+async def handle_rendering(mesh: Mesh):
+    mesh.update_geonodes_from_metadata()
+    # nft.make_animated_objects_visible()
+    set_object_visibility(mesh)
+    bpy.ops.shaderverse.realize() 
+    
+    
     generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
     metadata = Metadata(
         filename=bpy.data.filepath,attributes=generated_metadata)
@@ -495,7 +506,7 @@ async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  res
     if file_format == 'JPEG':
         bpy.context.scene.render.image_settings.quality = quality
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    metadata = await handle_rendering(mesh, should_realize=False)
+    metadata = await handle_rendering(mesh)
     rendered_file = generate_filepath("jpg")
     await render_jpeg_file(rendered_file)
     print("reverting file")
