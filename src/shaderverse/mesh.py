@@ -5,32 +5,7 @@ import shaderverse
 from typing import List
 
 class Mesh():
-    # metadata = {}
-    # directory = ""
-    # id: int
-
-    # def __init__(self):
-    #     pass
-
-    # def generate_metadata(self):
-    #     pass
-
-    # def load_metadata(self, filename: str):
-    #     pass
-
-    # def export_metadata(self):
-    #     pass
-
-    # def render_preview(self):
-    #     pass
-
-    # def render_glb(self):
-    #     pass
-
-    # def render_jpeg(self):
-    #     pass
-
-
+    """Mesh class to generate metadata and update mesh"""
 
     all_objects =  None
     attributes = []
@@ -48,6 +23,7 @@ class Mesh():
         self.attributes = []
 
     def generate_random_range(self, item_ref: bpy.types.NodeSocketInterfaceFloat, precision):
+        """ generate a random value based on the min and max values of a node socket """
         start = item_ref.min_value
         stop = item_ref.max_value
         start = round(start / precision)
@@ -57,6 +33,7 @@ class Mesh():
 
 
     def find_geometry_nodes(self, object_ref: bpy.types.Object):
+        """find all geonodes in an object and return a list of node objects"""
 
         geometry_node_objects = []
         object_name = object_ref.name
@@ -106,6 +83,7 @@ class Mesh():
     
 
     def is_item_restriction_found(self, restrictions):
+        """ check if a restriction is found in the generated metadata"""
         attributes = self.node_group_attributes["attributes"]
         found = []
         for restriction in restrictions:
@@ -135,6 +113,7 @@ class Mesh():
         return False
 
     def select_object_from_collection(self, collection: bpy.types.Collection):
+        """ Return the first object in a collection that has either a custom weight or restriction """
         collection_object_names = []
         collection_object_weights = []
         active_geometry_node_objects = []
@@ -154,7 +133,7 @@ class Mesh():
         return bpy.data.objects[selected_object_name]
 
     def get_metadata_object_from_collection(self, collection: bpy.types.Collection):
-        """ Return the first object in a collection that has either a custom weight or restriction """
+        """ Return the first object in a collection that has either a custom weight or restriction"""
         for obj in collection.all_objects:
             shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
             if shaderverse_properties.weight < 1 or (len (shaderverse_properties.restrictions) > 0):
@@ -162,6 +141,7 @@ class Mesh():
         return collection.all_objects[0]
 
     def select_collection_based_on_object(self, collection: bpy.types.Collection):
+        """ Return select a collection based on the first object in a collection that has either a custom weight or restriction"""
         collection_objects = []
         collection_object_weights = []
         
@@ -181,9 +161,11 @@ class Mesh():
         return bpy.data.collections[selected_collection_name]
 
     def is_parent_node(self, current_node_object_name):
+        """ check if a node is the main node in the scene """
         return current_node_object_name == bpy.context.scene.shaderverse.main_geonodes_object.name
 
     def is_collection_none(self, collection):
+        """ check if a collection is empty """
         for obj in collection.all_objects.values():
             shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
             if shaderverse_properties.metadata_is_none:
@@ -191,6 +173,7 @@ class Mesh():
         return False
 
     def generate_metadata(self, node_object):
+        """ generate metadata for a node object """
         modifier_name = node_object["modifier_name"]
         modifier = node_object["modifier_ref"]
         node_group: bpy.types.GeometryNodeTree = modifier.node_group
@@ -266,6 +249,7 @@ class Mesh():
 
 
     def match_object_from_metadata(self, trait_type, trait_value):
+        """ match an object from the generated metadata"""
         matched_object = None
         collection = bpy.data.collections[trait_type]
         for obj in collection.all_objects.values():
@@ -276,6 +260,7 @@ class Mesh():
         return matched_object
 
     def match_collection_from_metadata(self, trait_type, trait_value):
+        """ match a collection from the generated metadata"""
         matched_collection = None
         collection = bpy.data.collections[trait_type]
 
@@ -288,6 +273,7 @@ class Mesh():
     
 
     def get_main_node_group(self):
+        """ get the main node group in the scene """
         self.refresh_geometry_node_objects()
 
         for node_object in self.geometry_node_objects:
@@ -330,6 +316,7 @@ class Mesh():
 
 
     def set_node_inputs_from_metadata(self, node_object):
+        """ set the node inputs from the generated metadata"""
         modifier_name = node_object["modifier_name"]
         modifier = node_object["modifier_ref"]
         node_group = modifier.node_group
@@ -374,6 +361,7 @@ class Mesh():
                         
 
     def format_value(self, item: bpy.types.Object):
+        """ format the value of an item for the metadata"""
         if hasattr(item, "shaderverse"):
             #TODO handle prefix values for material names
             shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = item.shaderverse 
@@ -388,6 +376,7 @@ class Mesh():
             return item
     
     def set_attributes(self):
+        """ set the attributes for the metadata"""
         print(self.collection)
         attributes = self.collection[0]["attributes"]
         for key in attributes:
@@ -411,6 +400,7 @@ class Mesh():
 
 
     def update_mesh(self, node_object):
+        """ update the mesh of a node object """
         self.set_node_inputs_from_metadata(node_object)
         object_name = node_object["object_name"]
         object_ref = bpy.data.objects[object_name]
@@ -420,6 +410,7 @@ class Mesh():
 
     
     def create_animated_objects_collection(self):
+        """ create a collection for animated objects """
         is_animated_objects_created = bpy.data.collections.find("Animated Objects") >= 0
         if not is_animated_objects_created:
             collection = bpy.data.collections.new("Animated Objects")
@@ -427,6 +418,7 @@ class Mesh():
             
 
     def is_animated_collection(self, collection: bpy.types.Collection):
+        """ check if a collection has an animation data """
         found = False
         for obj in collection.objects:
             if obj.animation_data:
@@ -439,16 +431,19 @@ class Mesh():
         return found
         
     def reset_animated_objects(self):
+        """ reset the animated objects collection """
         animated_objects_collection = bpy.data.collections['Animated Objects']
         for collection in animated_objects_collection.children_recursive:
             animated_objects_collection.children.unlink(collection)
             bpy.data.collections.remove(collection)
             
     def copy_to_animated_objects(self, other: bpy.types.Collection):
+        """ copy a collection to the animated objects collection"""
         collection = bpy.data.collections["Animated Objects"]
         collection.children.link(other.copy())
 
     def make_animated_objects_visible(self):
+        """ make the animated objects visible"""
         for item in bpy.data.collections['Animated Objects'].all_objects:
             if hasattr(item, "shaderverse"):
                 item.hide_set(False)   
