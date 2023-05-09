@@ -2,6 +2,7 @@ import re
 import subprocess
 import sys
 import platform
+from  ..background.process import Process
 
 def install_modules():
     python_path = sys.executable
@@ -18,11 +19,11 @@ def install_modules():
     #         required.add('ray[serve] @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-2.0.0.dev0-cp310-cp310-manylinux2014_x86_64.whl')
     #     case "Darwin":
     #         required.add('ray[serve] @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-2.0.0.dev0-cp310-cp310-macosx_10_15_universal2.whl')
-
-    result = subprocess.run([python_path, "-m", "pip", "install", *required], capture_output=True)
-
-
-
+    cmd = [python_path, "-m", "pip", "install", *required]
+    process = Process(cmd)
+    process.execute()
+    print("Installing modules...")
+    print(f"Result: {process.result}")
     
 if __name__ == "__main__":
     install_modules()
