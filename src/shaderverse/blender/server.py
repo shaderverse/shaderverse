@@ -1,22 +1,21 @@
 import webbrowser
 import bpy
-from shaderverse.api.controller import Proxy
+from ..background.fastapi_service import FastapiService
 from shaderverse.blender.tunnel import Tunnel
-import psutil
 
-proxy: Proxy
+
+fastapi_service: FastapiService
 tunnel: Tunnel
 is_initialized = False
 
 
 def start_server(live_preview: bool = False):
-    global is_initialized, proxy, tunnel
+    global is_initialized, fastapi_service, tunnel
     if not is_initialized:
-        proxy = Proxy(blender_binary_path=bpy.app.binary_path, 
-                        blend_file=bpy.data.filepath)
-        api_url = f"http://localhost:{proxy.port}/docs"
-        print(f"Starting API on port {proxy.port}")
-        print(f"Blend File: {proxy.blend_file} ")
+        fastapi_service = FastapiService()
+        api_url = f"http://localhost:{fastapi_service.port}/docs"
+        print(f"Starting API on port {fastapi_service.port}")
+        print(f"Blend File: {fastapi_service.blend_file} ")
         if live_preview:
             tunnel = Tunnel()
             preview_url = f"https://shaderverse.com/preview/{tunnel.subdomain}"
@@ -32,23 +31,9 @@ def start_server(live_preview: bool = False):
                 print(f"Unable to open api url")
     is_initialized = True
 
-def kill_process_recursively(process):
-    for proc in process.children(recursive=True):
-        proc.kill()
-    process.kill()
-
 def kill_fastapi():
     global is_initialized
-    process = psutil.Process(proxy.process.pid)
-    kill_process_recursively(process)
-
-    # kill any instantiated blender sessions
-    # for key in sessions:
-    #     proccess_id = sessions[key].process.pid 
-    #     blender_process = psutil.Process(proccess_id)
-    #     kill_process_recursively(blender_process)
-    #     sessions.pop(key, None)
-
+    fastapi_service.kill()
     is_initialized = False
     
     

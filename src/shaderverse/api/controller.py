@@ -40,7 +40,7 @@ def load_proxy_session()-> BlenderData:
 proxy = None
 
 
-class Proxy():
+class BlenderService():
     def __init__(self, blender_binary_path: str, blend_file: str, )-> None:
         """ 
         Initializes the server 
@@ -115,7 +115,7 @@ sessions: Dict[UUID4, BlenderInstance] = {}
 
 def start(blender_binary_path: str, blend_file: str,):
     global proxy
-    proxy = Proxy(blend_file=blend_file, blender_binary_path=blender_binary_path)
+    proxy = BlenderService(blend_file=blend_file, blender_binary_path=blender_binary_path)
     
     
 
