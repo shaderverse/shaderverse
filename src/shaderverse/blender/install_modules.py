@@ -5,7 +5,7 @@ import platform
 
 def install_modules():
     python_path = sys.executable
-    required = {'uvicorn[standard]', 'fastapi', 'pydantic', 'pyngrok', 'psutil'}
+    required = {'uvicorn[standard]', 'fastapi', 'pydantic', 'pyngrok', 'psutil', 'celery', 'httpx', 'sqlalchemy==1.4.48'}
 
     # subprocess.run([python_path, "-m", "ensurepip"], capture_output=True)
     # subprocess.run([python_path, "-m", "pip", "install", "--upgrade", "pip",])
