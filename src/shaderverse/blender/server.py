@@ -1,17 +1,19 @@
 import webbrowser
 import bpy
+from ..background.celery_service import CeleryService
 from ..background.fastapi_service import FastapiService
 from shaderverse.blender.tunnel import Tunnel
 
-
+celery_workers = 4
+celery_service: CeleryService
 fastapi_service: FastapiService
 tunnel: Tunnel
 is_initialized = False
 
-
 def start_server(live_preview: bool = False):
-    global is_initialized, fastapi_service, tunnel
+    global is_initialized, fastapi_service, celery_service, tunnel
     if not is_initialized:
+        celery_service = CeleryService(workers=celery_workers)
         fastapi_service = FastapiService()
         api_url = f"http://localhost:{fastapi_service.port}/docs"
         print(f"Starting API on port {fastapi_service.port}")
@@ -33,6 +35,7 @@ def start_server(live_preview: bool = False):
 
 def kill_fastapi():
     global is_initialized
+    celery_service.kill()
     fastapi_service.kill()
     is_initialized = False
     

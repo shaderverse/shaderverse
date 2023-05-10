@@ -1,0 +1,30 @@
+import argparse
+import sys
+import os
+SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
+sys.path.append(SCRIPT_PATH) # this is a hack to make the import work in Blender
+from main import celery
+
+app = celery
+def get_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description='Python script to bootstrap Celery')
+
+    parser.add_argument('--concurrency',
+                        help='number of workers', 
+                        dest='concurrency', type=int, required=False,
+                        default=4)
+    
+    python_args = sys.argv[sys.argv.index("--")+1:]
+    args, unknown = parser.parse_known_args(args=python_args)
+    return args
+
+    
+
+if __name__ == '__main__':
+    args = get_args()
+    worker = app.Worker(
+        loglevel='INFO',
+        concurrency=args.concurrency,
+        pool='solo',
+    )
+    worker.start()

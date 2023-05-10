@@ -1,0 +1,13 @@
+{
+  "id": null,
+  "filename": "C:\\Users\\goldm\\src\\blender\\docker\\docker-blender-bpy\\app\\src\\project\\nouns.blend",
+  "attributes": [
+    { "trait_type": "Head", "value": "CrocHat" },
+    { "trait_type": "Shoes", "value": "shoes-black" },
+    { "trait_type": "Pants", "value": "pants-bege-crt" },
+    { "trait_type": "Body", "value": "body-teal-light" }
+  ],
+  "rendered_glb_url": null,
+  "rendered_usdz_url": null,
+  "rendered_file_url": null
+}
