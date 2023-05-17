@@ -4,6 +4,7 @@ from kombu import Queue
 
 
 def route_task(name, args, kwargs, options, task=None, **kw):
+    print(f"Routing task: {name}")
     if ":" in name:
         queue, _ = name.split(":")
         return {"queue": queue}
@@ -25,8 +26,8 @@ class BaseConfig:
         # default queue
         Queue("celery"),
         # custom queue
-        Queue("universities"),
-        Queue("university"),
+        Queue("render"),
+        Queue("generate"),
     )
 
     CELERY_TASK_ROUTES = (route_task,)

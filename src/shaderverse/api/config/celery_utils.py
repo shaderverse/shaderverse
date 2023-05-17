@@ -27,6 +27,9 @@ def get_task_info(task_id):
     result = {
         "task_id": task_id,
         "task_status": task_result.status,
-        "task_result": task_result.result
+        "task_result": task_result.result,
+        "task_name": task_result.name,
+        "task_info": task_result.info,
+        "task_traceback": task_result.traceback
     }
     return result
