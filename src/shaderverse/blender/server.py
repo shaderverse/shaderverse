@@ -4,7 +4,7 @@ from ..background.celery_service import CeleryService
 from ..background.fastapi_service import FastapiService
 from shaderverse.blender.tunnel import Tunnel
 
-celery_workers = 4
+celery_workers = 1
 celery_service: CeleryService
 fastapi_service: FastapiService
 tunnel: Tunnel
