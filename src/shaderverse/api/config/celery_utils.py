@@ -1,5 +1,5 @@
 from celery import current_app as current_celery_app
-from celery.result import AsyncResult
+from celery.result import AsyncResult, TimeoutError
 
 from .celery_config import settings
 
@@ -23,13 +23,29 @@ def get_task_info(task_id):
     """
     return task info for the given task_id
     """
-    task_result = AsyncResult(task_id)
-    result = {
-        "task_id": task_id,
-        "task_status": task_result.status,
-        "task_result": task_result.result,
-        "task_name": task_result.name,
-        "task_info": task_result.info,
-        "task_traceback": task_result.traceback
-    }
+    try:
+        task_result = AsyncResult(task_id)
+        
+        result = {
+            "task_id": task_id,
+            "task_status": task_result.status,
+            "task_result": task_result.result
+        }
+        task_result.get(timeout=2)
+    except TimeoutError as e:
+        result = {
+            "task_id": task_id,
+            "task_status": "TIMEOUT",
+            "task_result": e
+        }
+        print(f"Exception: {e}")
+    except ValueError as e:
+        result = {
+            "task_id": task_id,
+            "task_status": "VALUE_ERROR",
+            "task_result": e
+        }
+        print(f"Exception: {e}")
+
+
     return result

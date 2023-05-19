@@ -8,8 +8,9 @@ class CeleryService(Service):
     script_path = Path(__file__).parent.absolute()
     api_path = Path(Path(script_path).parent.absolute(), "api", "run_celery.py")
 
-    def __init__(self, workers: int = 4):
+    def __init__(self, workers: int = 1):
         self.workers = workers
+        print(f"Starting Celery with {self.workers} workers")
         self.cmd = [self.blender_binary_path, self.blend_file, "--background",  "--python", str(self.api_path), "--", "--concurrency", str(self.workers)]
         super().__init__(self.cmd)
         self.execute()

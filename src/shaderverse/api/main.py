@@ -137,7 +137,7 @@ async def shutdown_event():
 
 
 @app.post("/generate", response_class=JSONResponse, tags=["generator"])
-async def generate(mesh: Mesh = Depends(deps.get_mesh)):
+async def generate():
     # # print(bpy.context.active_object.name)
     # print("NFT attributes before running generator")
     # print(mesh.attributes)
@@ -245,9 +245,9 @@ async def handle_rendering(mesh: Mesh):
 
 async def make_glb_response(rendered_file: RenderedFile):
     return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
-
+    
 @app.post("/render_glb", response_class=JSONResponse, tags=["render"])
-async def render_glb(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
+async def render_glb(metadata: Metadata):
     # bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
     # metadata = await handle_rendering(mesh)
     # rendered_glb_file = generate_filepath("glb")
@@ -291,7 +291,7 @@ async def export_vrm_file(rendered_file):
 
 
 @app.post("/render_vrm", response_class=JSONResponse, tags=["render"])
-async def render_vrm(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
+async def render_vrm(metadata: Metadata):
     is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
     if not is_vrm_installed:
         raise HTTPException(status_code=404, detail="VRM addon not installed")
@@ -336,7 +336,7 @@ def delete_all_objects():
         bpy.data.objects.remove(obj)
 
 @app.post("/render_fbx", response_class=JSONResponse, tags=["render"])
-async def render_fbx(metadata: Metadata, background_task: BackgroundTasks, mesh: Mesh = Depends(deps.get_mesh)):
+async def render_fbx(metadata: Metadata):
     # bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
     # metadata = await handle_rendering(mesh)
 
@@ -367,29 +367,12 @@ async def render_jpeg_file(rendered_file):
     
 
 @app.post("/render_jpeg", response_class=JSONResponse, tags=["render"])
-async def render_jpeg(metadata: Metadata, background_task: BackgroundTasks,  resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90,  mesh: Mesh = Depends(deps.get_mesh)):
-    # bpy.context.scene.render.resolution_x = resolution_x
-    # bpy.context.scene.render.resolution_y = resolution_y
-    # bpy.data.scenes["Scene"].cycles.samples = samples
-    # bpy.context.scene.render.resolution_percentage = 100
-    # # TODO: makeformat an enum
-    # bpy.context.scene.render.image_settings.file_format = file_format
-    # if file_format == 'JPEG':
-    #     bpy.context.scene.render.image_settings.quality = quality
-    # bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    # metadata = await handle_rendering(mesh)
-    # rendered_file = generate_filepath("jpg")
-    # await render_jpeg_file(rendered_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
+async def render_jpeg(metadata: Metadata, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90):
 
-    # rendered_file_name = Path(rendered_file).name
-    # rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
-    # metadata.rendered_file_url = rendered_file_url
   
 
     
-    task = tasks.render_jpeg_task.apply_async(args=[metadata.dict()])
+    task = tasks.render_jpeg_task.apply_async(args=[metadata.dict(), resolution_x, resolution_y, samples, file_format, quality])
     # return metadata
     return JSONResponse({"task_id": task.id})
 

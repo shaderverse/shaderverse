@@ -4,6 +4,8 @@ import os
 SCRIPT_PATH = os.path.realpath(os.path.dirname(__file__))
 sys.path.append(SCRIPT_PATH) # this is a hack to make the import work in Blender
 from main import celery
+import tempfile
+from pathlib import Path
 
 app = celery
 def get_args() -> argparse.Namespace:
@@ -21,10 +23,15 @@ def get_args() -> argparse.Namespace:
     
 
 if __name__ == '__main__':
+    tempdir = Path(tempfile.gettempdir())
+    temp_file_name = f"celery_{next(tempfile._get_candidate_names())}.log"
+    temp_file_path = tempdir.joinpath(temp_file_name)
+    print(f"Logging to {temp_file_path}")
     args = get_args()
     worker = app.Worker(
         loglevel='INFO',
         concurrency=args.concurrency,
         pool='solo',
+        logfile=str(temp_file_path)
     )
     worker.start()
