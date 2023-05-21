@@ -25,7 +25,7 @@ def handle_server_keep_alive():
     if fastapi_service.status == "completed" or celery_service.status == "completed":
         print("Restarting server")
         start_server()
-    return 30.0
+    return 60.0
 
 def delete_temp_db():
     """Delete the temp db file"""
