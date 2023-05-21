@@ -2,7 +2,6 @@ import webbrowser
 import bpy
 from ..background.celery_service import CeleryService
 from ..background.fastapi_service import FastapiService
-from ..background.flower_service import FlowerService
 from shaderverse.blender.tunnel import Tunnel
 from pathlib import Path
 from tempfile import gettempdir
@@ -11,7 +10,6 @@ from tempfile import gettempdir
 celery_workers = 6
 celery_service: CeleryService
 fastapi_service: FastapiService
-# flower_service: FlowerService
 tunnel: Tunnel
 is_initialized = False
 
@@ -42,7 +40,6 @@ def start_server(live_preview: bool = False):
         delete_temp_db()
         celery_service = CeleryService(workers=celery_workers)
         fastapi_service = FastapiService()
-        # flower_service = FlowerService()
         api_url = f"http://localhost:{fastapi_service.port}/docs"
         print(f"Starting API on port {fastapi_service.port}")
         print(f"Blend File: {fastapi_service.blend_file} ")
@@ -66,7 +63,6 @@ def kill_fastapi():
     global is_initialized
     celery_service.kill()
     fastapi_service.kill()
-    # flower_service.kill()
     is_initialized = False
     
     
