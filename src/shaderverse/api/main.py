@@ -415,5 +415,7 @@ if __name__ == "__main__":
 
 
     # serve.run(FastAPIWrapper.bind())
+    log_config=str(Path(SCRIPT_PATH, "log.ini"))
+    print(f"log config: {log_config}")
 
-    uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port)
+    uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="info",  log_config=log_config)
