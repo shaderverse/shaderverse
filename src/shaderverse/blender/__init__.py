@@ -759,15 +759,18 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         
         for mesh in current_meshes:
             if mesh not in existing_meshes:
+                print(f"found new mesh {mesh.name}")
                 objects_to_process.append(mesh)
         
         if len(objects_to_process) > 0:
             
         
             for mesh_obj in objects_to_process:
+                print(f"reparenting {mesh_obj.name}")
                 
+    
                 if parent:
-                
+                        
                     if parent.type == "ARMATURE":
 
                         if parent_type == "BONE":
@@ -775,6 +778,11 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
                         
                         if parent_type == "OBJECT":
                             self.handle_object_parenting(mesh_obj, parent)
+
+                    
+                    # if there is no parent in the new mesh, set it to the parent of the original mesh
+                    if not mesh_obj.parent:
+                        mesh_obj.parent = parent
                 
             bpy.data.objects.remove(obj, do_unlink=True)
             return
@@ -841,7 +849,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         bpy.ops.object.parent_set(type='BONE', keep_transform=False)
 
     def handle_object_parenting(self, source_obj, target_obj):
-        """ parent object to bone of armature """
+        """ parent object to armature object"""
         obj= source_obj
         parent_obj = target_obj
 
