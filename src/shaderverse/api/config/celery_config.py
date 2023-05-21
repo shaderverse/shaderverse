@@ -25,7 +25,7 @@ class BaseConfig:
     CELERY_BROKER_BACKEND = "db+sqlite:///celery.sqlite"
     cache_backend = "db+sqlite:///celery.sqlite"
     result_backend = "db+sqlite:///celery.sqlite"
-    worker_send_task_events = True
+    # worker_send_task_events = True
 
     CELERY_TASK_QUEUES: list = (
         # default queue
