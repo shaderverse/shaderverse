@@ -31,7 +31,7 @@ def get_task_info(task_id):
             "task_status": task_result.status,
             "task_result": task_result.result
         }
-        task_result.get(timeout=2)
+        task_result.get(timeout=0.1)
     except TimeoutError as e:
         result = {
             "task_id": task_id,
