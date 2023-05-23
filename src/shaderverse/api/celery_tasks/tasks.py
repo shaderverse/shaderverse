@@ -45,8 +45,9 @@ def export_glb_file(glb_filename: str):
 
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
               name='generate:generate_task')
-def generate_task(self):
-    open_blend_file()
+def generate_task(self, should_open_blend_file: bool = False):
+    if should_open_blend_file:
+        open_blend_file()
     mesh = Mesh()
     print("NFT attributes before running generator")
     print(mesh.attributes)
@@ -65,7 +66,7 @@ def generate_task(self):
     print("NFT metadata")
     print(metadata)
     print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
+    bpy.ops.wm.revert_mainfile()
 
 
     return metadata
@@ -106,16 +107,17 @@ def handle_rendering(mesh: Mesh):
 
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
               name='render:render_glb_task')
-def render_glb_task(self, metadata: dict):
-    open_blend_file()
+def render_glb_task(self, metadata: dict, should_open_blend_file: bool = False):
+    if should_open_blend_file:
+        open_blend_file()
     mesh = Mesh()
     print(f"metadata: {metadata}")
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
     metadata = handle_rendering(mesh)
     rendered_glb_file = generate_filepath("glb")
     export_glb_file(rendered_glb_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
 
     rendered_file_name = Path(rendered_glb_file).name
     rendered_glb_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
@@ -131,19 +133,20 @@ def export_vrm_file(rendered_file):
 
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
               name='render:render_vrm_task')
-def render_vrm_task(self, metadata: dict):
+def render_vrm_task(self, metadata: dict, should_open_blend_file: bool = False):
     is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
     if not is_vrm_installed:
         raise HTTPException(status_code=404, detail="VRM addon not installed")
     
-    open_blend_file()
+    if should_open_blend_file:
+        open_blend_file()
     mesh = Mesh()
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
     metadata = handle_rendering(mesh)
     rendered_file = generate_filepath("vrm")
     export_vrm_file(rendered_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
 
     rendered_file_name = Path(rendered_file).name
     rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
@@ -172,8 +175,9 @@ def delete_all_objects():
 
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
               name='render:render_fbx_task')
-def render_fbx_task(self, metadata: dict):
-    open_blend_file()
+def render_fbx_task(self, metadata: dict, should_open_blend_file: bool = False):
+    if should_open_blend_file:
+        open_blend_file()
     mesh = Mesh()
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
     metadata = handle_rendering(mesh)
@@ -185,8 +189,8 @@ def render_fbx_task(self, metadata: dict):
     bpy.ops.import_scene.gltf(filepath=rendered_glb_file)
     rendered_file = generate_filepath("fbx")
     export_fbx_file(rendered_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
 
     rendered_file_name = Path(rendered_file).name
     rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
@@ -203,8 +207,9 @@ def render_jpeg_file(rendered_file):
 
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
               name='render:render_jpeg_task')
-def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90,  mesh = Mesh()):
-    open_blend_file()
+def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90, should_open_blend_file: bool = False):
+    if should_open_blend_file:
+        open_blend_file()
     mesh = Mesh()
     bpy.context.scene.render.resolution_x = resolution_x
     bpy.context.scene.render.resolution_y = resolution_y
@@ -218,8 +223,8 @@ def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y
     metadata = handle_rendering(mesh)
     rendered_file = generate_filepath("jpg")
     render_jpeg_file(rendered_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
 
     rendered_file_name = Path(rendered_file).name
     rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
