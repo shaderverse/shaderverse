@@ -35,7 +35,7 @@ def get_task_info(task_id):
     except TimeoutError as e:
         result = {
             "task_id": task_id,
-            "task_status": "TIMEOUT",
+            "task_status": task_result.status,
             "task_result": e
         }
         print(f"Exception: {e}")
