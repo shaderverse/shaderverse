@@ -13,7 +13,8 @@ class Metadata(BaseModel):
     rendered_usdz_url: str = None
     rendered_file_url: str = None
 
-
+class MetadataList(BaseModel):
+    metadata_list: List[Metadata] = None
 class RenderedResults(BaseModel):
     metadata: Metadata
     buffer: bytes = None

@@ -4,7 +4,7 @@ import os
 import json
 import requests
 from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response, HTTPException
-from shaderverse.model import Metadata, Attribute, RenderedResults
+from shaderverse.model import Metadata, Attribute, MetadataList
 from shaderverse.api.model import SessionData, SessionStatus, RenderedFile
 from typing import Generator, List
 import tempfile
@@ -28,8 +28,9 @@ sys.path.append(SCRIPT_PATH) # this is a hack to make the import work in Blender
 from celery.app import Proxy
 from config.celery_utils import create_celery
 from celery_tasks import tasks
-from config.celery_utils import get_task_info
-
+from config.celery_utils import get_task_info, get_batch_info
+from celery import group
+import logging
 
 
 
@@ -169,6 +170,47 @@ async def get_task_status(task_id: str) -> dict:
     """
     return get_task_info(task_id)
 
+@app.get("/batch/{batch_id}", tags=["task"])
+async def get_batch_status(batch_id: str) -> dict:
+    """
+    Return the status of the submitted Batch
+    """
+    return get_batch_info(batch_id)
+
+@app.get("/batch_metadata/{batch_id}", tags=["task"])
+async def get_batch_metadata_status(batch_id: str) -> dict:
+    """
+    Return the metadata of the submitted Batch
+    """
+    result = get_batch_info(batch_id)
+    _metadata_list: List[Metadata] = []
+    # logging.info(f"result: {result}")
+    try:
+        for task_result in result["batch_result"]:
+         
+            
+            # result_filename = task_result["task_result"]["filename"]
+            # result_attributes = task_result["task_result"]["attributes"]
+            # metadata = Metadata()\
+
+
+            # result_dict = task_result["task_result"].to_dict()
+            # metadata = Metadata(result_dict)
+            
+            metadata: Metadata = task_result["task_result"]
+            
+
+            # metadata.filename = result_filename
+            # metadata.attributes = result_attributes
+
+            _metadata_list.append(metadata)
+        metadata_list = MetadataList(metadata_list=_metadata_list)
+        logging.info(f"metadata_list: {metadata_list}")
+    except Exception as e:
+        metadata_list = JSONResponse({"error": str(e)})
+
+    # return result['batch_result'][0]
+    return metadata_list
 
 def set_active_object(object_ref):
     bpy.context.view_layer.objects.active = object_ref
@@ -284,6 +326,44 @@ async def render_glb(metadata: Metadata):
     task = tasks.render_glb_task.apply_async(args=[metadata.dict()])
     return JSONResponse({"task_id": task.id})
 
+@app.post("/generate_batch", response_class=JSONResponse, tags=["generator"])
+def generate_batch(number_to_generate: int, starting_id: int = 1):
+    group_list = []
+    for i in range(starting_id, number_to_generate+starting_id):
+        #TODO add handle i as id in generate_task
+        task = tasks.generate_task.s(id=i)
+        group_list.append(task)
+         
+    job = group(group_list)
+    result = job.apply_async()
+    result.save()
+
+    return JSONResponse({"batch_id": result.id})
+
+
+
+@app.post("/render_batch", response_class=JSONResponse, tags=["render"])
+def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_open_blend_file: bool = False):
+    group_list = []
+    for metadata in metadata_list.metadata_list:
+        if should_render_glb:
+            task = tasks.render_glb_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_jpeg:
+            task = tasks.render_jpeg_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_fbx:
+            task = tasks.render_fbx_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_vrm:
+            task = tasks.render_vrm_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+         
+    job = group(group_list)
+    result = job.apply_async()
+    result.save()
+
+    return JSONResponse({"batch_id": result.id})
 
 
 async def export_vrm_file(rendered_file):
@@ -418,4 +498,6 @@ if __name__ == "__main__":
     log_config=str(Path(SCRIPT_PATH, "log.ini"))
     print(f"log config: {log_config}")
 
-    uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="info",  log_config=log_config)
+    uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="debug",  log_config=log_config)
+
+    # uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="debug")
