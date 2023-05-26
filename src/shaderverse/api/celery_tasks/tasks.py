@@ -45,7 +45,7 @@ def export_glb_file(glb_filename: str):
 
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
               name='generate:generate_task')
-def generate_task(self, should_open_blend_file: bool = False):
+def generate_task(self, should_open_blend_file: bool = False, id=None):
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
@@ -61,10 +61,9 @@ def generate_task(self, should_open_blend_file: bool = False):
     generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
     metadata = Metadata(
+        id=id,
         filename=bpy.data.filepath,attributes=generated_metadata)
 
-    print("NFT metadata")
-    print(metadata)
     print("reverting file")
     bpy.ops.wm.revert_mainfile()
 
@@ -111,7 +110,8 @@ def render_glb_task(self, metadata: dict, should_open_blend_file: bool = False):
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
-    print(f"metadata: {metadata}")
+    id = metadata["id"]
+    # print(f"metadata: {metadata}")
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
     metadata = handle_rendering(mesh)
     rendered_glb_file = generate_filepath("glb")
@@ -123,6 +123,7 @@ def render_glb_task(self, metadata: dict, should_open_blend_file: bool = False):
     rendered_glb_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
     metadata.rendered_glb_url = rendered_glb_url
     metadata.rendered_file_url = rendered_glb_url
+    metadata.id = id
 
     return metadata 
 
@@ -138,6 +139,7 @@ def render_vrm_task(self, metadata: dict, should_open_blend_file: bool = False):
     if not is_vrm_installed:
         raise HTTPException(status_code=404, detail="VRM addon not installed")
     
+    id = metadata["id"]
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
@@ -151,6 +153,7 @@ def render_vrm_task(self, metadata: dict, should_open_blend_file: bool = False):
     rendered_file_name = Path(rendered_file).name
     rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
     metadata.rendered_file_url = rendered_file_url
+    metadata.id = id
 
     return metadata 
 
@@ -179,6 +182,7 @@ def render_fbx_task(self, metadata: dict, should_open_blend_file: bool = False):
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
+    id = metadata["id"]
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
     metadata = handle_rendering(mesh)
 
@@ -195,6 +199,7 @@ def render_fbx_task(self, metadata: dict, should_open_blend_file: bool = False):
     rendered_file_name = Path(rendered_file).name
     rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
     metadata.rendered_file_url = rendered_file_url
+    metadata.id = id
 
     return metadata 
 
@@ -211,6 +216,7 @@ def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
+    id = metadata["id"]
     bpy.context.scene.render.resolution_x = resolution_x
     bpy.context.scene.render.resolution_y = resolution_y
     bpy.data.scenes["Scene"].cycles.samples = samples
@@ -229,5 +235,6 @@ def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y
     rendered_file_name = Path(rendered_file).name
     rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
     metadata.rendered_file_url = rendered_file_url
+    metadata.id = id
   
     return metadata  
