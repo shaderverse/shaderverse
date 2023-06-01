@@ -3,6 +3,12 @@ import json
 import random
 import shaderverse
 from typing import List
+from enum import Enum
+
+class Position(Enum):
+    """Position enum for setting the Position of an armature"""
+    POSE = "POSE"
+    REST = "REST"
 
 class Mesh():
     """Mesh class to generate metadata and update mesh"""
@@ -460,3 +466,21 @@ class Mesh():
         """ run a custom script after generation if enabled """
         if bpy.context.scene.shaderverse.post_generation_script and bpy.context.scene.shaderverse.enable_post_generation_script:
             exec(compile(bpy.context.scene.shaderverse.post_generation_script.as_string(), 'textblock', 'exec'))
+    
+    def set_pose_position(self, armature_obj: bpy.types.Object, pose_position: str):
+        ''' set the armature to rest position and reparent the mesh to the armature '''
+        
+
+    def get_visible_objects(self, object_type) -> list[bpy.types.Object]:
+        objects = []
+        for obj in bpy.data.objects:
+            if obj.type == object_type and obj.visible_get():
+                objects.append(obj)
+        return objects
+    
+    def set_armature_position(self, position: Position):
+        """ set the position of all visible armatures to either REST or POSE """
+        armatures = self.get_visible_objects("ARMATURE")
+        for armature_obj in armatures:
+            armature = armature_obj.data
+            armature.pose_position = str(position)

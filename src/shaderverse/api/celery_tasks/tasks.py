@@ -146,6 +146,7 @@ def render_vrm_task(self, metadata: dict, should_open_blend_file: bool = False):
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
     metadata = handle_rendering(mesh)
     rendered_file = generate_filepath("vrm")
+    mesh.set_armature_position("REST")
     export_vrm_file(rendered_file)
     print("reverting file")
     bpy.ops.wm.revert_mainfile()
