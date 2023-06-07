@@ -543,7 +543,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
         from .. import custom_icons
-        from . import server
+        from .server import is_initialized
 
         layout = self.layout 
         layout.separator(factor=1.0) 
@@ -558,7 +558,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
 
 
         # display start or stop api button
-        if not server.is_initialized:
+        if not is_initialized:
             shaderverse_start_api = SHADERVERSE_OT_start_api
             layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
         else:
@@ -875,6 +875,9 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         return False
 
     def execute(self, context):
+        # deselect all objects
+        bpy.ops.object.select_all(action='DESELECT')
+
         armatures_to_realize = self.get_visible_objects("ARMATURE")
         mesh_objects_to_realize = self.get_visible_objects("MESH")
         
