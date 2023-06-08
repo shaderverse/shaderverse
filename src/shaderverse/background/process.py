@@ -1,5 +1,7 @@
 import subprocess
 from enum import Enum   
+from pathlib import Path
+import platform
 
 class Status(str, Enum):
     """Status of the fetch"""
@@ -31,7 +33,10 @@ class Process:
             raise ValueError("Command not set")
 
         print(f"Running command: {self.cmd}")
-        self.process = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, shell=True)
+        if platform.system() == "Windows":
+            self.process = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, shell=True)
+        else:
+            self.process = subprocess.Popen(self.cmd, stdout=subprocess.PIPE)
         self.result = ""       
 
 
@@ -60,13 +65,20 @@ class Process:
     def refresh_result(self):
         """ Refresh the result of the process"""
         outs = None
+        errs = None
         try:
             outs, errs = self.process.communicate(timeout=0.1)
             self.status = Status.completed
             if outs:
                 self.result = outs.decode().strip()
+            if errs:
+                self.result = errs.decode().strip()
         except subprocess.TimeoutExpired:
             self.status = Status.running
+            if outs:
+                self.result = outs.decode().strip()
+            if errs:
+                self.result = errs.decode().strip()
             # outs, errs = self.process.communicate()
         
 
@@ -78,4 +90,4 @@ class Process:
     
     @result.setter
     def result(self, value):
-        self._result = value    
+        self._result = value
