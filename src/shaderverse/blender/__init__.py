@@ -355,7 +355,6 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
             from . import install_modules
             try:
                 install_modules.install_modules()
-                bpy.context.preferences.addons["shaderverse"].preferences.modules_installed = True
             except:
                 raise("Unable to install Python Modules")
             
@@ -396,15 +395,22 @@ class SHADERVERSE_PT_preferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+
+        # layout.prop(self, "modules_installed", text="Addon Installed")
         if not self.modules_installed:
-            layout = self.layout
-            box = layout.box()
-            row = box.row()
-            row.alert = True
-            # required = {'uvicorn', 'fastapi', 'pydantic'}
-            # missing_modules = get_missing_modules(required)
-            row.label(text=f"Please install missing python modules")
-            row.operator(SHADERVERSE_OT_install_modules.bl_idname, text=SHADERVERSE_OT_install_modules.bl_label)
+            from .install_modules import process
+            print(f"process status from preferences: {process.status}")
+            if process.status == "running":
+                layout.label(text="Installing modules...")
+            else:
+                layout = self.layout
+                box = layout.box()
+                row = box.row()
+                row.alert = True
+                # required = {'uvicorn', 'fastapi', 'pydantic'}
+                # missing_modules = get_missing_modules(required)
+                row.label(text=f"Please install missing python modules")
+                row.operator(SHADERVERSE_OT_install_modules.bl_idname, text=SHADERVERSE_OT_install_modules.bl_label)
 
 
 
@@ -542,59 +548,64 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
-        from .. import custom_icons
-        from .server import is_initialized
-
         layout = self.layout 
-        layout.separator(factor=1.0) 
+        if context.preferences.addons["shaderverse"].preferences.modules_installed:
+            
+            from .. import custom_icons
+            from .server import is_initialized
 
-        shaderverse_generate = SHADERVERSE_OT_generate
+            
+            layout.separator(factor=1.0) 
 
-        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
+            shaderverse_generate = SHADERVERSE_OT_generate
 
-        # shaderverse_live_preview = SHADERVERSE_OT_live_preview
+            layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
 
-        # layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
+            # shaderverse_live_preview = SHADERVERSE_OT_live_preview
+
+            # layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
 
 
-        # display start or stop api button
-        if not is_initialized:
-            shaderverse_start_api = SHADERVERSE_OT_start_api
-            layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
+            # display start or stop api button
+            if not is_initialized:
+                shaderverse_start_api = SHADERVERSE_OT_start_api
+                layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
+            else:
+                shaderverse_stop_api = SHADERVERSE_OT_stop_api
+                layout.operator(shaderverse_stop_api.bl_idname, text= shaderverse_stop_api.bl_label, icon="CONSOLE", emboss=True)
+
+            
+
+
+            
+            # TODO draw module
+
+
+            # split = layout.split(factor=0.1)
+            # col = split.column()
+            # col = split.column()
+
+            # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
+            if hasattr(bpy.types.Scene, "shaderverse"):
+                generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+                for attribute in generated_metadata:
+                    row = layout.row()
+                    grid_flow = row.grid_flow(columns=2, even_columns=True, row_major=True)
+
+
+                    # grid_row = grid_flow.row()
+
+
+                    col1 = grid_flow.column()
+                    col2 = grid_flow.column()
+
+                    col1.label(text="Trait Type".format(attribute["trait_type"]))
+                    col1.box().label(text=attribute["trait_type"])
+                    col2.label(text="Value")
+                    col2.box().label(text=attribute["value"])
+                    # layout.separator_spacer()
         else:
-            shaderverse_stop_api = SHADERVERSE_OT_stop_api
-            layout.operator(shaderverse_stop_api.bl_idname, text= shaderverse_stop_api.bl_label, icon="CONSOLE", emboss=True)
-
-        
-
-
-        
-        # TODO draw module
-
-
-        # split = layout.split(factor=0.1)
-        # col = split.column()
-        # col = split.column()
-
-        # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
-        if hasattr(bpy.types.Scene, "shaderverse"):
-            generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
-            for attribute in generated_metadata:
-                row = layout.row()
-                grid_flow = row.grid_flow(columns=2, even_columns=True, row_major=True)
-
-
-                # grid_row = grid_flow.row()
-
-
-                col1 = grid_flow.column()
-                col2 = grid_flow.column()
-
-                col1.label(text="Trait Type".format(attribute["trait_type"]))
-                col1.box().label(text=attribute["trait_type"])
-                col2.label(text="Value")
-                col2.box().label(text=attribute["value"])
-                # layout.separator_spacer()
+            layout.label(text="Waiting for modules to install...")
 
 
 class SHADERVERSE_PT_settings(bpy.types.Panel):
@@ -999,7 +1010,6 @@ class SHADERVERSE_OT_stop_live_preview(bpy.types.Operator):
         server.kill_fastapi()
         server.kill_tunnel()
         return {'FINISHED'}
-
 
 def handle_adding_sites_to_path():
     home_path =  pathlib.Path.home()
