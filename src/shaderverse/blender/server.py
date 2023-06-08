@@ -4,7 +4,8 @@ from ..background.celery_service import CeleryService
 from ..background.fastapi_service import FastapiService
 from shaderverse.blender.tunnel import Tunnel
 from pathlib import Path
-from tempfile import gettempdir
+# from tempfile import gettempdir
+from shaderverse.api.utils import get_temporary_directory
 
 
 celery_workers = 6
@@ -29,7 +30,7 @@ def handle_server_keep_alive():
 
 def delete_temp_db():
     """Delete the temp db file"""
-    tempdir = Path(gettempdir())
+    tempdir = get_temporary_directory()
     db_path = tempdir.joinpath("celerydb.sqlite")
     if db_path.exists():
         db_path.unlink()

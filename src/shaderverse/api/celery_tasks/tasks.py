@@ -8,6 +8,7 @@ import os
 import tempfile
 from shaderverse.mesh import Mesh
 from shaderverse.model import Metadata, Attribute
+from shaderverse.api.utils import get_temporary_directory
 
 def open_blend_file(filepath: str = bpy.data.filepath):
     bpy.ops.wm.open_mainfile(filepath=filepath)
@@ -76,7 +77,7 @@ def set_active_object(object_ref):
 
 def generate_filepath(extension: str) -> str:
     """ Generate a temporary file path with the given extension"""
-    temp_dir_name = tempfile.gettempdir()
+    temp_dir_name = get_temporary_directory()
     temp_file_name = f"{next(tempfile._get_candidate_names())}.{extension}"
     temp_file_path = os.path.join(temp_dir_name,temp_file_name)
     return temp_file_path

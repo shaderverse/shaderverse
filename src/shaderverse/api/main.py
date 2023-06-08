@@ -31,6 +31,7 @@ from celery_tasks import tasks
 from config.celery_utils import get_task_info, get_batch_info
 from celery import group
 import logging
+from shaderverse.api.utils import get_temporary_directory
 
 
 
@@ -224,7 +225,7 @@ class GlbResponse(FileResponse):
 @app.get("/rendered/{file_id}", response_class=FileResponse, tags=["download"])
 def get_rendered_file(file_id: str):
     """Get a rendered file"""
-    temp_dir = tempfile.gettempdir()
+    temp_dir = get_temporary_directory()
     file_path = Path(temp_dir, file_id)
     print(f"file_path: {file_path}")
     return FileResponse(str(file_path))
@@ -464,7 +465,7 @@ def get_args() -> argparse.Namespace:
 
     parser.add_argument('--port', 
                         help='the port', 
-                        dest='port', type=float, required=False,
+                        dest='port', type=int, required=False,
                         default=8118)
     
     # parser.add_argument('--blend_file', 
@@ -495,9 +496,12 @@ if __name__ == "__main__":
 
 
     # serve.run(FastAPIWrapper.bind())
-    log_config=str(Path(SCRIPT_PATH, "log.ini"))
-    print(f"log config: {log_config}")
+    # log_config=str(Path(SCRIPT_PATH, "log.ini"))
 
-    uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="debug",  log_config=log_config)
+    # print(f"log config: {log_config}")
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s')
+
+
+    uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port)
 
     # uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="debug")
