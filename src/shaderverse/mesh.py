@@ -2,34 +2,28 @@ import bpy
 import json
 import random
 import shaderverse
+from typing import List
+from enum import Enum
+from pydantic import BaseModel
+from typing import Optional, Literal
+import logging
+
+class Position(Enum):
+    """Position enum for setting the Position of an armature"""
+    POSE = "POSE"
+    REST = "REST"
+
+class NodeInput(BaseModel):
+    """ Schema for a mesh input node """
+
+    trait_type: str
+    value_type: Literal["tuple", "float", "int", "str"]
+    allowed_values: Optional[tuple[str]] = None
+    min_value: Optional[float|int] = None
+    max_value: Optional[float|int] = None
 
 class Mesh():
-    # metadata = {}
-    # directory = ""
-    # id: int
-
-    # def __init__(self):
-    #     pass
-
-    # def generate_metadata(self):
-    #     pass
-
-    # def load_metadata(self, filename: str):
-    #     pass
-
-    # def export_metadata(self):
-    #     pass
-
-    # def render_preview(self):
-    #     pass
-
-    # def render_glb(self):
-    #     pass
-
-    # def render_jpeg(self):
-    #     pass
-
-
+    """Mesh class to generate metadata and update mesh"""
 
     all_objects =  None
     attributes = []
@@ -47,6 +41,7 @@ class Mesh():
         self.attributes = []
 
     def generate_random_range(self, item_ref: bpy.types.NodeSocketInterfaceFloat, precision):
+        """ generate a random value based on the min and max values of a node socket """
         start = item_ref.min_value
         stop = item_ref.max_value
         start = round(start / precision)
@@ -56,6 +51,7 @@ class Mesh():
 
 
     def find_geometry_nodes(self, object_ref: bpy.types.Object):
+        """find all geonodes in an object and return a list of node objects"""
 
         geometry_node_objects = []
         object_name = object_ref.name
@@ -86,13 +82,17 @@ class Mesh():
                     raise Exception(f"{error}: Could not find a Node Group type in object: {object_name}. Did you add an empty geometry node modifier?")
 
         return geometry_node_objects
+    
+    def refresh_geometry_node_objects(self):
+        """find all geonodes then update the node object based on the generated metadata"""
+        self.geometry_node_objects = []
+        for object_ref in self.all_objects:
+            self.geometry_node_objects += self.find_geometry_nodes(object_ref)
 
     def update_geonodes_from_metadata(self):
         """find all geonodes then update the node object based on the generated metadata"""
 
-        # find all geonode objects
-        for object_ref in self.all_objects:
-            self.geometry_node_objects += self.find_geometry_nodes(object_ref)
+        self.refresh_geometry_node_objects()
 
         # update all geonodes with metadata
         for node_object in self.geometry_node_objects:
@@ -101,6 +101,7 @@ class Mesh():
     
 
     def is_item_restriction_found(self, restrictions):
+        """ check if a restriction is found in the generated metadata"""
         attributes = self.node_group_attributes["attributes"]
         found = []
         for restriction in restrictions:
@@ -130,6 +131,7 @@ class Mesh():
         return False
 
     def select_object_from_collection(self, collection: bpy.types.Collection):
+        """ Return the first object in a collection that has either a custom weight or restriction """
         collection_object_names = []
         collection_object_weights = []
         active_geometry_node_objects = []
@@ -149,7 +151,7 @@ class Mesh():
         return bpy.data.objects[selected_object_name]
 
     def get_metadata_object_from_collection(self, collection: bpy.types.Collection):
-        """ Return the first object in a collection that has either a custom weight or restriction """
+        """ Return the first object in a collection that has either a custom weight or restriction"""
         for obj in collection.all_objects:
             shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
             if shaderverse_properties.weight < 1 or (len (shaderverse_properties.restrictions) > 0):
@@ -157,6 +159,7 @@ class Mesh():
         return collection.all_objects[0]
 
     def select_collection_based_on_object(self, collection: bpy.types.Collection):
+        """ Return select a collection based on the first object in a collection that has either a custom weight or restriction"""
         collection_objects = []
         collection_object_weights = []
         
@@ -176,9 +179,11 @@ class Mesh():
         return bpy.data.collections[selected_collection_name]
 
     def is_parent_node(self, current_node_object_name):
+        """ check if a node is the main node in the scene """
         return current_node_object_name == bpy.context.scene.shaderverse.main_geonodes_object.name
 
     def is_collection_none(self, collection):
+        """ check if a collection is empty """
         for obj in collection.all_objects.values():
             shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = obj.shaderverse 
             if shaderverse_properties.metadata_is_none:
@@ -186,6 +191,7 @@ class Mesh():
         return False
 
     def generate_metadata(self, node_object):
+        """ generate metadata for a node object """
         modifier_name = node_object["modifier_name"]
         modifier = node_object["modifier_ref"]
         node_group: bpy.types.GeometryNodeTree = modifier.node_group
@@ -261,6 +267,7 @@ class Mesh():
 
 
     def match_object_from_metadata(self, trait_type, trait_value):
+        """ match an object from the generated metadata"""
         matched_object = None
         collection = bpy.data.collections[trait_type]
         for obj in collection.all_objects.values():
@@ -271,6 +278,7 @@ class Mesh():
         return matched_object
 
     def match_collection_from_metadata(self, trait_type, trait_value):
+        """ match a collection from the generated metadata"""
         matched_collection = None
         collection = bpy.data.collections[trait_type]
 
@@ -280,10 +288,58 @@ class Mesh():
                 return matched_collection
         
         return matched_collection
+    
+  
+    def get_main_node_group(self):
+        """ get the main node group in the scene """
+        self.refresh_geometry_node_objects()
 
+        for node_object in self.geometry_node_objects:
+            if self.is_parent_node(node_object["object_name"]):
+                return node_object
+
+    def get_objects(self) -> List[bpy.types.Object]:
+        """Returns a list of objects that are passed into main node group"""
+        objects: List[bpy.types.Object] = []
+        main_node_group = self.get_main_node_group()
+
+        if not main_node_group:
+            logging.warning("No main node group found")
+            # no main node group found
+            return objects
+
+        modifier: bpy.types.Modifier = main_node_group["modifier_ref"]
+        node_group: bpy.types.GeometryNodeTree = modifier.node_group
+
+        metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+
+        for attribute in metadata:
+            trait_type = attribute['trait_type']
+            trait_value = attribute['value']
+
+            # is this attribute in our node group?
+            if trait_type in node_group.inputs.keys():
+
+                item_ref = node_group.inputs[trait_type]
+
+                item_type = item_ref.type
+
+
+                if item_type == "OBJECT":
+                    object_ref = self.match_object_from_metadata(trait_type, trait_value)
+                    objects.append(object_ref)
+                
+                if item_type == "COLLECTION":
+                    collection_ref: bpy.types.Collection = self.match_collection_from_metadata(trait_type, trait_value)
+
+                    for obj in collection_ref.all_objects.values():
+                        objects.append(obj)
+             
+        return objects
 
 
     def set_node_inputs_from_metadata(self, node_object):
+        """ set the node inputs from the generated metadata"""
         modifier_name = node_object["modifier_name"]
         modifier = node_object["modifier_ref"]
         node_group = modifier.node_group
@@ -328,6 +384,7 @@ class Mesh():
                         
 
     def format_value(self, item: bpy.types.Object):
+        """ format the value of an item for the metadata"""
         if hasattr(item, "shaderverse"):
             #TODO handle prefix values for material names
             shaderverse_properties: shaderverse.blender.SHADERVERSE_PG_main = item.shaderverse 
@@ -342,6 +399,7 @@ class Mesh():
             return item
     
     def set_attributes(self):
+        """ set the attributes for the metadata"""
         print(self.collection)
         attributes = self.collection[0]["attributes"]
         for key in attributes:
@@ -357,6 +415,12 @@ class Mesh():
     def run_metadata_generator(self):
         """find all geometry nodes and run metadata generator for those nodes """
         main_geonodes_object: bpy.types.Object =  bpy.context.scene.shaderverse.main_geonodes_object
+
+        if not main_geonodes_object:
+            logging.warning("No main geonodes object found")
+            # no main geonodes object found
+            return
+
         main_geonodes = self.find_geometry_nodes(main_geonodes_object)
         for node in main_geonodes:
             self.generate_metadata(node)
@@ -365,6 +429,7 @@ class Mesh():
 
 
     def update_mesh(self, node_object):
+        """ update the mesh of a node object """
         self.set_node_inputs_from_metadata(node_object)
         object_name = node_object["object_name"]
         object_ref = bpy.data.objects[object_name]
@@ -374,6 +439,7 @@ class Mesh():
 
     
     def create_animated_objects_collection(self):
+        """ create a collection for animated objects """
         is_animated_objects_created = bpy.data.collections.find("Animated Objects") >= 0
         if not is_animated_objects_created:
             collection = bpy.data.collections.new("Animated Objects")
@@ -381,6 +447,7 @@ class Mesh():
             
 
     def is_animated_collection(self, collection: bpy.types.Collection):
+        """ check if a collection has an animation data """
         found = False
         for obj in collection.objects:
             if obj.animation_data:
@@ -393,16 +460,19 @@ class Mesh():
         return found
         
     def reset_animated_objects(self):
+        """ reset the animated objects collection """
         animated_objects_collection = bpy.data.collections['Animated Objects']
         for collection in animated_objects_collection.children_recursive:
             animated_objects_collection.children.unlink(collection)
             bpy.data.collections.remove(collection)
             
     def copy_to_animated_objects(self, other: bpy.types.Collection):
+        """ copy a collection to the animated objects collection"""
         collection = bpy.data.collections["Animated Objects"]
         collection.children.link(other.copy())
 
     def make_animated_objects_visible(self):
+        """ make the animated objects visible"""
         for item in bpy.data.collections['Animated Objects'].all_objects:
             if hasattr(item, "shaderverse"):
                 item.hide_set(False)   
@@ -419,3 +489,79 @@ class Mesh():
         """ run a custom script after generation if enabled """
         if bpy.context.scene.shaderverse.post_generation_script and bpy.context.scene.shaderverse.enable_post_generation_script:
             exec(compile(bpy.context.scene.shaderverse.post_generation_script.as_string(), 'textblock', 'exec'))
+    
+    def set_pose_position(self, armature_obj: bpy.types.Object, pose_position: str):
+        ''' set the armature to rest position and reparent the mesh to the armature '''
+        
+
+    def get_visible_objects(self, object_type) -> list[bpy.types.Object]:
+        objects = []
+        for obj in bpy.data.objects:
+            if obj.type == object_type and obj.visible_get():
+                objects.append(obj)
+        return objects
+    
+    def set_armature_position(self, position: Position):
+        """ set the position of all visible armatures to either REST or POSE """
+        armatures = self.get_visible_objects("ARMATURE")
+        for armature_obj in armatures:
+            armature = armature_obj.data
+            armature.pose_position = str(position)
+
+    def get_schema(self) -> list[NodeInput]:
+        """ derive the input schema from the geometry node group """
+        inputs = []
+        geonode_group = self.get_main_node_group()['node_group']
+        geonode_inputs = geonode_group.inputs
+        
+        for geonode_input in geonode_inputs.keys():
+            input_type = geonode_inputs[geonode_input].type
+            trait_type = geonode_input
+            if input_type != 'GEOMETRY':
+                
+                
+                # input_dict = {
+                #     "trait_type": geonode_input,
+                #     }
+                allowed_values_list = []
+                if input_type == 'COLLECTION':
+                    node_input = NodeInput(trait_type=trait_type, value_type="tuple")
+                    allowed_values_list = bpy.data.collections[geonode_input].children.keys()
+                    # input_dict["value_type"] = "tuple"
+                    
+                
+                if input_type == 'OBJECT':
+                    node_input = NodeInput( trait_type=trait_type, value_type="tuple")
+                    allowed_values_list = bpy.data.collections[geonode_input].objects.keys()
+                    
+                if input_type == 'MATERIAL':
+                    node_input = NodeInput( trait_type=trait_type, value_type="tuple")
+                    object_names = bpy.data.collections[geonode_input].objects.keys()
+                    for object_name in object_names:
+                        allowed_values_list.append(bpy.data.objects[object_name].material_slots[0].material.name)
+                
+                if input_type == 'INT':
+                    node_input = NodeInput( trait_type=trait_type, value_type="int")
+                    # input_dict["min_value"] = geonode_inputs[geonode_input].min_value
+                    node_input.min_value = geonode_inputs[geonode_input].min_value
+                    # input_dict["max_value"] = geonode_inputs[geonode_input].max_value
+                    node_input.max_value = geonode_inputs[geonode_input].max_value
+                
+                if input_type == 'VALUE':
+                    node_input = NodeInput( trait_type=trait_type, value_type="float")# input_dict["min_value"] = geonode_inputs[geonode_input].min_value
+                    node_input.min_value = geonode_inputs[geonode_input].min_value
+                    # input_dict["max_value"] = geonode_inputs[geonode_input].max_value
+                    node_input.max_value = geonode_inputs[geonode_input].max_value
+
+                if input_type == 'STRING':
+                    node_input = NodeInput( trait_type=trait_type, value_type="str")
+
+                    
+                if len(allowed_values_list) > 0 and node_input:
+                    # input_dict["allowed_values"] = tuple(allowed_values_list)    
+                    node_input.allowed_values = tuple(allowed_values_list)
+
+                # inputs.append(input_dict)
+                inputs.append(node_input)
+        
+        return inputs

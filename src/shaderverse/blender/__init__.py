@@ -6,7 +6,7 @@ import site
 import sys
 import os
 import pathlib
-
+from typing import List
 
 BPY_SYS_PATH = list(sys.path) # Make instance of `bpy`'s modified sys.path
 
@@ -355,7 +355,6 @@ class SHADERVERSE_OT_install_modules(bpy.types.Operator):
             from . import install_modules
             try:
                 install_modules.install_modules()
-                bpy.context.preferences.addons["shaderverse"].preferences.modules_installed = True
             except:
                 raise("Unable to install Python Modules")
             
@@ -375,7 +374,8 @@ class SHADERVERSE_OT_render(bpy.types.Operator):
 
     def execute(self, context):
         from ..model import GenRange
-        from ..render import Render     
+        from ..render import Render
+        from . import server     
         range_start = context.scene.shaderverse.render.range_start
         range_end = context.scene.shaderverse.render.range_end
         basepath = context.scene.shaderverse.render.basepath
@@ -383,27 +383,34 @@ class SHADERVERSE_OT_render(bpy.types.Operator):
         
         gen_range: GenRange = GenRange(start=range_start, end=range_end)
         renderer = Render(gen_range=gen_range, basepath=basepath, batch_name=batch_name)
-        renderer.execute()
+        if not server.is_initialized:
+            server.start_server()
+        renderer.handle_execute(context)
+        return {'FINISHED'}
 
-        return{'FINISHED'}
-    
-      
-
+        
 class SHADERVERSE_PT_preferences(bpy.types.AddonPreferences):
     bl_idname = "shaderverse"
     modules_installed: bpy.props.BoolProperty(name="Python Modules Installed", default=False)
 
     def draw(self, context):
         layout = self.layout
+
+        # layout.prop(self, "modules_installed", text="Addon Installed")
         if not self.modules_installed:
-            layout = self.layout
-            box = layout.box()
-            row = box.row()
-            row.alert = True
-            # required = {'uvicorn', 'fastapi', 'pydantic'}
-            # missing_modules = get_missing_modules(required)
-            row.label(text=f"Please install missing python modules")
-            row.operator(SHADERVERSE_OT_install_modules.bl_idname, text=SHADERVERSE_OT_install_modules.bl_label)
+            from .install_modules import process
+            print(f"process status from preferences: {process.status}")
+            if process.status == "running":
+                layout.label(text="Installing modules...")
+            else:
+                layout = self.layout
+                box = layout.box()
+                row = box.row()
+                row.alert = True
+                # required = {'uvicorn', 'fastapi', 'pydantic'}
+                # missing_modules = get_missing_modules(required)
+                row.label(text=f"Please install missing python modules")
+                row.operator(SHADERVERSE_OT_install_modules.bl_idname, text=SHADERVERSE_OT_install_modules.bl_label)
 
 
 
@@ -541,59 +548,64 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
     def draw(self, context):
         # You can set the property values that should be used when the user
         # presses the button in the UI.
-        from .. import custom_icons
-        from . import server
-
         layout = self.layout 
-        layout.separator(factor=1.0) 
+        if context.preferences.addons["shaderverse"].preferences.modules_installed:
+            
+            from .. import custom_icons
+            from .server import is_initialized
 
-        shaderverse_generate = SHADERVERSE_OT_generate
+            
+            layout.separator(factor=1.0) 
 
-        layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
+            shaderverse_generate = SHADERVERSE_OT_generate
 
-        # shaderverse_live_preview = SHADERVERSE_OT_live_preview
+            layout.operator(shaderverse_generate.bl_idname, text= shaderverse_generate.bl_label, icon_value=custom_icons["shaderverse_icon"].icon_id, emboss=True)
 
-        # layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
+            # shaderverse_live_preview = SHADERVERSE_OT_live_preview
+
+            # layout.operator(shaderverse_live_preview.bl_idname, text= shaderverse_live_preview.bl_label, icon="CAMERA_STEREO", emboss=True)
 
 
-        # display start or stop api button
-        if not server.is_initialized:
-            shaderverse_start_api = SHADERVERSE_OT_start_api
-            layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
+            # display start or stop api button
+            if not is_initialized:
+                shaderverse_start_api = SHADERVERSE_OT_start_api
+                layout.operator(shaderverse_start_api.bl_idname, text= shaderverse_start_api.bl_label, icon="CONSOLE", emboss=True)
+            else:
+                shaderverse_stop_api = SHADERVERSE_OT_stop_api
+                layout.operator(shaderverse_stop_api.bl_idname, text= shaderverse_stop_api.bl_label, icon="CONSOLE", emboss=True)
+
+            
+
+
+            
+            # TODO draw module
+
+
+            # split = layout.split(factor=0.1)
+            # col = split.column()
+            # col = split.column()
+
+            # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
+            if hasattr(bpy.types.Scene, "shaderverse") and len(bpy.context.scene.shaderverse.generated_metadata) > 0:
+                generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+                for attribute in generated_metadata:
+                    row = layout.row()
+                    grid_flow = row.grid_flow(columns=2, even_columns=True, row_major=True)
+
+
+                    # grid_row = grid_flow.row()
+
+
+                    col1 = grid_flow.column()
+                    col2 = grid_flow.column()
+
+                    col1.label(text="Trait Type".format(attribute["trait_type"]))
+                    col1.box().label(text=attribute["trait_type"])
+                    col2.label(text="Value")
+                    col2.box().label(text=attribute["value"])
+                    # layout.separator_spacer()
         else:
-            shaderverse_stop_api = SHADERVERSE_OT_stop_api
-            layout.operator(shaderverse_stop_api.bl_idname, text= shaderverse_stop_api.bl_label, icon="CONSOLE", emboss=True)
-
-        
-
-
-        
-        # TODO draw module
-
-
-        # split = layout.split(factor=0.1)
-        # col = split.column()
-        # col = split.column()
-
-        # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
-        if hasattr(bpy.types.Scene, "shaderverse"):
-            generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
-            for attribute in generated_metadata:
-                row = layout.row()
-                grid_flow = row.grid_flow(columns=2, even_columns=True, row_major=True)
-
-
-                # grid_row = grid_flow.row()
-
-
-                col1 = grid_flow.column()
-                col2 = grid_flow.column()
-
-                col1.label(text="Trait Type".format(attribute["trait_type"]))
-                col1.box().label(text=attribute["trait_type"])
-                col2.label(text="Value")
-                col2.box().label(text=attribute["value"])
-                # layout.separator_spacer()
+            layout.label(text="Waiting for modules to install...")
 
 
 class SHADERVERSE_PT_settings(bpy.types.Panel):
@@ -739,7 +751,6 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         parent = obj.parent
         parent_bone = obj.parent_bone
         parent_type = obj.parent_type
-        parent_vertices = obj.parent_vertices
         
         existing_meshes = self.get_visible_objects("MESH")    
         
@@ -754,20 +765,24 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         # look for new meshes
         current_meshes = self.get_visible_objects("MESH")
         
-        objects_to_process  = []
+        objects_to_process : List(bpy.types.Object) = []
         
         
         for mesh in current_meshes:
             if mesh not in existing_meshes:
+                print(f"found new mesh {mesh.name}")
                 objects_to_process.append(mesh)
+                self.set_obj_visible(mesh)
         
         if len(objects_to_process) > 0:
             
         
             for mesh_obj in objects_to_process:
+                print(f"reparenting {mesh_obj.name}")
                 
+    
                 if parent:
-                
+                        
                     if parent.type == "ARMATURE":
 
                         if parent_type == "BONE":
@@ -775,6 +790,11 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
                         
                         if parent_type == "OBJECT":
                             self.handle_object_parenting(mesh_obj, parent)
+
+                    
+                    # if there is no parent in the new mesh, set it to the parent of the original mesh
+                    if not mesh_obj.parent:
+                        mesh_obj.parent = parent
                 
             bpy.data.objects.remove(obj, do_unlink=True)
             return
@@ -815,7 +835,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         return objects
         
     
-    def handle_bone_parenting(self, source_obj, target_armature_obj, parent_bone):
+    def handle_bone_parenting(self, source_obj: bpy.types.Object, target_armature_obj: bpy.types.Armature, parent_bone: bpy.types.Bone):
         """ parent object to bone of armature """
         obj= source_obj
         armature_obj = target_armature_obj
@@ -836,11 +856,12 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         armature_obj.select_set(True)
         bpy.context.view_layer.objects.active = armature_obj
         # the active object will be the parent of all selected object
+        print(f"parenting {obj.name} to {armature_obj.name} bone {parent_bone}")
 
         bpy.ops.object.parent_set(type='BONE', keep_transform=False)
 
     def handle_object_parenting(self, source_obj, target_obj):
-        """ parent object to bone of armature """
+        """ parent object to armature object"""
         obj= source_obj
         parent_obj = target_obj
 
@@ -859,17 +880,24 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         """ check if object is a geonode """
         if obj.type == "MESH":
             for modifier in obj.modifiers.values():
-                if modifier.type == "NODE":
+                if modifier.type == "NODES":
                     node_group = modifier.node_group
                     if node_group.type == "GEOMETRY":
                         return True
         return False
+    
+    def set_obj_visible(self, obj: bpy.types.Object):
+        """ set object to visible """
+        obj.hide_set(False)
+        obj.hide_render = False
+    
+    def realize_objects(self):
+        # deselect all objects
+        bpy.ops.object.select_all(action='DESELECT')
 
-    def execute(self, context):
         armatures_to_realize = self.get_visible_objects("ARMATURE")
         mesh_objects_to_realize = self.get_visible_objects("MESH")
         
-        print(f'starting with these meshes to process: {mesh_objects_to_realize}')
             
         # set pose position to rest
         for obj in armatures_to_realize:
@@ -888,29 +916,24 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
             self.set_pose_position(obj, 'POSE')
         
         existing_objects = armatures_to_realize + mesh_objects_to_realize
+    
+    def should_realize(self):
+        found = False
         current_meshes = self.get_visible_objects("MESH")
-
-        # hide all geonodes
         for obj in current_meshes:
             if self.is_geonode(obj):
-                obj.hide_set(True)
- 
+                return True
+        return found
 
-        # delete extra visible meshes that may have been created
-        # for obj in bpy.data.objects:
-        #     if obj.type == 'MESH' and obj.visible_get() and obj not in objects_to_realize:
-        #         bpy.data.objects.remove(obj, do_unlink=True)
 
-        # parent_node_object = context.scene.shaderverse.main_geonodes_object
-        # parent_node_collection = parent_node_object.users_collection[0]
-        # parent_node_objects = parent_node_collection.all_objects
-        # for obj in parent_node_objects:
-        #     self.realize_object(obj)
-
-        # animated_objects = bpy.data.collections['Animated Objects'].all_objects
-        # for obj in animated_objects:
-        #     self.realize_object(obj)
-
+    def execute(self, context):
+        found = self.should_realize()
+        count = 0
+        max_depth = 4
+        while found and count < max_depth:
+            count += 1
+            self.realize_objects()
+            found = self.should_realize()    
         return {'FINISHED'}
 
 
@@ -987,7 +1010,6 @@ class SHADERVERSE_OT_stop_live_preview(bpy.types.Operator):
         server.kill_fastapi()
         server.kill_tunnel()
         return {'FINISHED'}
-
 
 def handle_adding_sites_to_path():
     home_path =  pathlib.Path.home()
