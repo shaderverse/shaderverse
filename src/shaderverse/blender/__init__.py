@@ -586,7 +586,7 @@ class SHADERVERSE_PT_generated_metadata(bpy.types.Panel):
             # col = split.column()
 
             # box.prop(this_context.shaderverse, 'is_parent_node', text="Parent Node")
-            if hasattr(bpy.types.Scene, "shaderverse"):
+            if hasattr(bpy.types.Scene, "shaderverse") and len(bpy.context.scene.shaderverse.generated_metadata) > 0:
                 generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
                 for attribute in generated_metadata:
                     row = layout.row()
