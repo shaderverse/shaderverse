@@ -772,6 +772,7 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
             if mesh not in existing_meshes:
                 print(f"found new mesh {mesh.name}")
                 objects_to_process.append(mesh)
+                self.set_obj_visible(mesh)
         
         if len(objects_to_process) > 0:
             
@@ -879,20 +880,24 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
         """ check if object is a geonode """
         if obj.type == "MESH":
             for modifier in obj.modifiers.values():
-                if modifier.type == "NODE":
+                if modifier.type == "NODES":
                     node_group = modifier.node_group
                     if node_group.type == "GEOMETRY":
                         return True
         return False
-
-    def execute(self, context):
+    
+    def set_obj_visible(self, obj: bpy.types.Object):
+        """ set object to visible """
+        obj.hide_set(False)
+        obj.hide_render = False
+    
+    def realize_objects(self):
         # deselect all objects
         bpy.ops.object.select_all(action='DESELECT')
 
         armatures_to_realize = self.get_visible_objects("ARMATURE")
         mesh_objects_to_realize = self.get_visible_objects("MESH")
         
-        print(f'starting with these meshes to process: {mesh_objects_to_realize}')
             
         # set pose position to rest
         for obj in armatures_to_realize:
@@ -911,29 +916,24 @@ class SHADERVERSE_OT_realize(bpy.types.Operator):
             self.set_pose_position(obj, 'POSE')
         
         existing_objects = armatures_to_realize + mesh_objects_to_realize
+    
+    def should_realize(self):
+        found = False
         current_meshes = self.get_visible_objects("MESH")
-
-        # hide all geonodes
         for obj in current_meshes:
             if self.is_geonode(obj):
-                obj.hide_set(True)
- 
+                return True
+        return found
 
-        # delete extra visible meshes that may have been created
-        # for obj in bpy.data.objects:
-        #     if obj.type == 'MESH' and obj.visible_get() and obj not in objects_to_realize:
-        #         bpy.data.objects.remove(obj, do_unlink=True)
 
-        # parent_node_object = context.scene.shaderverse.main_geonodes_object
-        # parent_node_collection = parent_node_object.users_collection[0]
-        # parent_node_objects = parent_node_collection.all_objects
-        # for obj in parent_node_objects:
-        #     self.realize_object(obj)
-
-        # animated_objects = bpy.data.collections['Animated Objects'].all_objects
-        # for obj in animated_objects:
-        #     self.realize_object(obj)
-
+    def execute(self, context):
+        found = self.should_realize()
+        count = 0
+        max_depth = 4
+        while found and count < max_depth:
+            count += 1
+            self.realize_objects()
+            found = self.should_realize()    
         return {'FINISHED'}
 
 
