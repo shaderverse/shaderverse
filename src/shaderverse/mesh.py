@@ -4,11 +4,23 @@ import random
 import shaderverse
 from typing import List
 from enum import Enum
+from pydantic import BaseModel
+from typing import Optional, Literal
+import logging
 
 class Position(Enum):
     """Position enum for setting the Position of an armature"""
     POSE = "POSE"
     REST = "REST"
+
+class NodeInput(BaseModel):
+    """ Schema for a mesh input node """
+
+    trait_type: str
+    value_type: Literal["tuple", "float", "int", "str"]
+    allowed_values: Optional[tuple[str]] = None
+    min_value: Optional[float|int] = None
+    max_value: Optional[float|int] = None
 
 class Mesh():
     """Mesh class to generate metadata and update mesh"""
@@ -277,7 +289,7 @@ class Mesh():
         
         return matched_collection
     
-
+  
     def get_main_node_group(self):
         """ get the main node group in the scene """
         self.refresh_geometry_node_objects()
@@ -289,8 +301,13 @@ class Mesh():
     def get_objects(self) -> List[bpy.types.Object]:
         """Returns a list of objects that are passed into main node group"""
         objects: List[bpy.types.Object] = []
-
         main_node_group = self.get_main_node_group()
+
+        if not main_node_group:
+            logging.warning("No main node group found")
+            # no main node group found
+            return objects
+
         modifier: bpy.types.Modifier = main_node_group["modifier_ref"]
         node_group: bpy.types.GeometryNodeTree = modifier.node_group
 
@@ -398,6 +415,12 @@ class Mesh():
     def run_metadata_generator(self):
         """find all geometry nodes and run metadata generator for those nodes """
         main_geonodes_object: bpy.types.Object =  bpy.context.scene.shaderverse.main_geonodes_object
+
+        if not main_geonodes_object:
+            logging.warning("No main geonodes object found")
+            # no main geonodes object found
+            return
+
         main_geonodes = self.find_geometry_nodes(main_geonodes_object)
         for node in main_geonodes:
             self.generate_metadata(node)
@@ -484,3 +507,61 @@ class Mesh():
         for armature_obj in armatures:
             armature = armature_obj.data
             armature.pose_position = str(position)
+
+    def get_schema(self) -> list[NodeInput]:
+        """ derive the input schema from the geometry node group """
+        inputs = []
+        geonode_group = self.get_main_node_group()['node_group']
+        geonode_inputs = geonode_group.inputs
+        
+        for geonode_input in geonode_inputs.keys():
+            input_type = geonode_inputs[geonode_input].type
+            trait_type = geonode_input
+            if input_type != 'GEOMETRY':
+                
+                
+                # input_dict = {
+                #     "trait_type": geonode_input,
+                #     }
+                allowed_values_list = []
+                if input_type == 'COLLECTION':
+                    node_input = NodeInput(trait_type=trait_type, value_type="tuple")
+                    allowed_values_list = bpy.data.collections[geonode_input].children.keys()
+                    # input_dict["value_type"] = "tuple"
+                    
+                
+                if input_type == 'OBJECT':
+                    node_input = NodeInput( trait_type=trait_type, value_type="tuple")
+                    allowed_values_list = bpy.data.collections[geonode_input].objects.keys()
+                    
+                if input_type == 'MATERIAL':
+                    node_input = NodeInput( trait_type=trait_type, value_type="tuple")
+                    object_names = bpy.data.collections[geonode_input].objects.keys()
+                    for object_name in object_names:
+                        allowed_values_list.append(bpy.data.objects[object_name].material_slots[0].material.name)
+                
+                if input_type == 'INT':
+                    node_input = NodeInput( trait_type=trait_type, value_type="int")
+                    # input_dict["min_value"] = geonode_inputs[geonode_input].min_value
+                    node_input.min_value = geonode_inputs[geonode_input].min_value
+                    # input_dict["max_value"] = geonode_inputs[geonode_input].max_value
+                    node_input.max_value = geonode_inputs[geonode_input].max_value
+                
+                if input_type == 'VALUE':
+                    node_input = NodeInput( trait_type=trait_type, value_type="float")# input_dict["min_value"] = geonode_inputs[geonode_input].min_value
+                    node_input.min_value = geonode_inputs[geonode_input].min_value
+                    # input_dict["max_value"] = geonode_inputs[geonode_input].max_value
+                    node_input.max_value = geonode_inputs[geonode_input].max_value
+
+                if input_type == 'STRING':
+                    node_input = NodeInput( trait_type=trait_type, value_type="str")
+
+                    
+                if len(allowed_values_list) > 0 and node_input:
+                    # input_dict["allowed_values"] = tuple(allowed_values_list)    
+                    node_input.allowed_values = tuple(allowed_values_list)
+
+                # inputs.append(input_dict)
+                inputs.append(node_input)
+        
+        return inputs

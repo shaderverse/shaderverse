@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 from shaderverse.mesh import Mesh
-from shaderverse.model import Metadata, Attribute
+from shaderverse.model import Metadata, Attribute, AttributeModel
 from shaderverse.api.utils import get_temporary_directory
 
 def open_blend_file(filepath: str = bpy.data.filepath):
@@ -35,7 +35,7 @@ def run_generator(mesh: Mesh):
 
 
 def export_glb_file(glb_filename: str):
-        bpy.ops.export_scene.gltf(filepath=glb_filename, check_existing=False, export_format='GLB', ui_tab='GENERAL', export_copyright='', export_image_format='AUTO', export_texcoords=True, export_normals=True, export_draco_mesh_compression_enable=False, export_tangents=False, export_materials='EXPORT', export_colors=True, use_mesh_edges=False, use_mesh_vertices=False, export_cameras=False, use_selection=False, use_visible=True, use_renderable=True, use_active_collection=False, export_extras=False, export_yup=True, export_apply=False, export_animations=True, export_frame_range=True, export_frame_step=1, export_force_sampling=True, export_nla_strips=True, export_def_bones=False, export_current_frame=False, export_skins=True, export_all_influences=False, export_morph=True, export_morph_normal=True, export_morph_tangent=False, export_lights=False, export_anim_single_armature=True)
+        bpy.ops.export_scene.gltf(filepath=glb_filename, check_existing=False, export_format='GLB', ui_tab='GENERAL', export_copyright='', export_image_format='AUTO', export_texcoords=True, export_normals=True, export_draco_mesh_compression_enable=False, export_tangents=False, export_materials='EXPORT', export_colors=True, use_mesh_edges=False, use_mesh_vertices=False, export_cameras=False, use_selection=False, use_visible=True, use_renderable=True, use_active_collection=False, export_extras=False, export_yup=True, export_apply=True, export_animations=True, export_frame_range=True, export_frame_step=1, export_force_sampling=True, export_nla_strips=True, export_def_bones=False, export_current_frame=False, export_skins=True, export_all_influences=False, export_morph=True, export_morph_normal=True, export_morph_tangent=False, export_lights=False, export_anim_single_armature=True)
 
 # @app.on_event("startup")
 # def startup_event():
@@ -59,11 +59,15 @@ def generate_task(self, should_open_blend_file: bool = False, id=None):
     print("NFT attributes after running generator")
     print(mesh.attributes)
 
-    generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
+    generated_metadata: List[Attribute] = []
+    if len(bpy.context.scene.shaderverse.generated_metadata) > 0:
+        generated_metadata = json.loads(bpy.context.scene.shaderverse.generated_metadata)
 
     metadata = Metadata(
         id=id,
-        filename=bpy.data.filepath,attributes=generated_metadata)
+        filename=bpy.data.filepath,json_attributes=generated_metadata)
+    
+    # metadata.set_attributes_from_json()
 
     print("reverting file")
     bpy.ops.wm.revert_mainfile()
@@ -100,7 +104,7 @@ def handle_rendering(mesh: Mesh):
     
     generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
     metadata = Metadata(
-        filename=bpy.data.filepath,attributes=generated_metadata)
+        filename=bpy.data.filepath,json_attributes=generated_metadata)
 
     return (metadata)
 
@@ -113,7 +117,8 @@ def render_glb_task(self, metadata: dict, should_open_blend_file: bool = False):
     mesh = Mesh()
     id = metadata["id"]
     # print(f"metadata: {metadata}")
-    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["json_attributes"])
+    
     metadata = handle_rendering(mesh)
     rendered_glb_file = generate_filepath("glb")
     export_glb_file(rendered_glb_file)
@@ -144,7 +149,7 @@ def render_vrm_task(self, metadata: dict, should_open_blend_file: bool = False):
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
-    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["json_attributes"])
     metadata = handle_rendering(mesh)
     rendered_file = generate_filepath("vrm")
     mesh.set_armature_position("REST")
@@ -185,7 +190,8 @@ def render_fbx_task(self, metadata: dict, should_open_blend_file: bool = False):
         open_blend_file()
     mesh = Mesh()
     id = metadata["id"]
-    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["json_attributes"])
+    
     metadata = handle_rendering(mesh)
 
     rendered_glb_file = generate_filepath("glb")
@@ -227,7 +233,8 @@ def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y
     bpy.context.scene.render.image_settings.file_format = file_format
     if file_format == 'JPEG':
         bpy.context.scene.render.image_settings.quality = quality
-    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["attributes"])
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["json_attributes"])
+    
     metadata = handle_rendering(mesh)
     rendered_file = generate_filepath("jpg")
     render_jpeg_file(rendered_file)

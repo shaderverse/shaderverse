@@ -4,7 +4,7 @@ import os
 import json
 import requests
 from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response, HTTPException
-from shaderverse.model import Metadata, Attribute, MetadataList
+from shaderverse.model import Metadata, Attribute, MetadataList, AttributeModel
 from shaderverse.api.model import SessionData, SessionStatus, RenderedFile
 from typing import Generator, List
 import tempfile
@@ -140,27 +140,6 @@ async def shutdown_event():
 
 @app.post("/generate", response_class=JSONResponse, tags=["generator"])
 async def generate():
-    # # print(bpy.context.active_object.name)
-    # print("NFT attributes before running generator")
-    # print(mesh.attributes)
-    # run_generator(mesh)
-    # # print(bpy.context.active_object.name)
-
-
-    # print("NFT attributes after running generator")
-    # print(mesh.attributes)
-
-    # generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
-
-    # metadata = Metadata(
-    #     filename=bpy.data.filepath,attributes=generated_metadata)
-
-    # print("NFT metadata")
-    # print(metadata)
-    # print("reverting file")
-    # # bpy.ops.wm.revert_mainfile()
-
-    # return metadata
     task = tasks.generate_task.apply_async()
     return JSONResponse({"task_id": task.id})
 
@@ -169,7 +148,11 @@ async def get_task_status(task_id: str) -> dict:
     """
     Return the status of the submitted Task
     """
-    return get_task_info(task_id)
+    task_info = get_task_info(task_id)
+    metadata: Metadata = task_info["task_result"]
+    metadata.set_attributes_from_json()
+    task_info["task_result"] = metadata
+    return task_info
 
 @app.get("/batch/{batch_id}", tags=["task"])
 async def get_batch_status(batch_id: str) -> dict:
@@ -199,7 +182,7 @@ async def get_batch_metadata_status(batch_id: str) -> dict:
             # metadata = Metadata(result_dict)
             
             metadata: Metadata = task_result["task_result"]
-            
+            metadata.set_attributes_from_json()
 
             # metadata.filename = result_filename
             # metadata.attributes = result_attributes
@@ -274,16 +257,6 @@ async def handle_rendering(mesh: Mesh):
     metadata = Metadata(
         filename=bpy.data.filepath,attributes=generated_metadata)
 
-    
-
-
-    # rendered_file = RenderedFile(id=uuid4(),file_path=glb_temp_file_name)
-    # print(rendered_file)
-
-
-
-    # rendered_files.append(rendered_file)
-
     return (metadata)
 
 async def make_glb_response(rendered_file: RenderedFile):
@@ -291,39 +264,7 @@ async def make_glb_response(rendered_file: RenderedFile):
     
 @app.post("/render_glb", response_class=JSONResponse, tags=["render"])
 async def render_glb(metadata: Metadata):
-    # bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    # metadata = await handle_rendering(mesh)
-    # rendered_glb_file = generate_filepath("glb")
-    # await export_glb_file(rendered_glb_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
-
-
-    # # background_task.add_task(upload_file, rendered_glb_file)
-    # # upload_file(rendered_glb_file)
-    # # background_task.add_task(trigger_usdz_render, rendered_glb_file)
-    # # trigger_usdz_render(rendered_glb_file)
-
-
-    # # did_file_upload = upload_file(rendered_glb_file, settings.S3_BUCKET)
-    # # print(f"did_file_upload: {did_file_upload}")
-    # # if did_file_upload:
-    # #     rendered_file_name = Path(rendered_glb_file).name
-    # #     file_url = f"https://s3.amazonaws.com/{settings.S3_BUCKET}/{rendered_file_name}" 
-    # #     metadata.rendered_file_url = file_url
-
-    # rendered_file_name = Path(rendered_glb_file).name
-    # rendered_glb_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
-    # metadata.rendered_glb_url = rendered_glb_url
-    # metadata.rendered_file_url = rendered_glb_url
-    # # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
-
-
-    # return metadata 
-    
-    # # return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
-
-    # # return file_response
+    metadata.generate_json_attributes()
     task = tasks.render_glb_task.apply_async(args=[metadata.dict()])
     return JSONResponse({"task_id": task.id})
 
@@ -347,6 +288,7 @@ def generate_batch(number_to_generate: int, starting_id: int = 1):
 def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_open_blend_file: bool = False):
     group_list = []
     for metadata in metadata_list.metadata_list:
+        metadata.generate_json_attributes()
         if should_render_glb:
             task = tasks.render_glb_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
             group_list.append(task)
@@ -377,20 +319,7 @@ async def render_vrm(metadata: Metadata):
     if not is_vrm_installed:
         raise HTTPException(status_code=404, detail="VRM addon not installed")
     
-    # bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    # metadata = await handle_rendering(mesh)
-    # rendered_file = generate_filepath("vrm")
-    # await export_vrm_file(rendered_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
-
-    # rendered_file_name = Path(rendered_file).name
-    # rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
-    # metadata.rendered_file_url = rendered_file_url
-    # # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
-
-
-    # return metadata 
+    metadata.generate_json_attributes()
     task = tasks.render_vrm_task.apply_async(args=[metadata.dict()])
     return JSONResponse({"task_id": task.id})
 
@@ -418,26 +347,7 @@ def delete_all_objects():
 
 @app.post("/render_fbx", response_class=JSONResponse, tags=["render"])
 async def render_fbx(metadata: Metadata):
-    # bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata.dict()["attributes"])
-    # metadata = await handle_rendering(mesh)
-
-    # rendered_glb_file = generate_filepath("glb")
-    # await export_glb_file(rendered_glb_file)
-    # print (Path(rendered_glb_file))
-    # delete_all_objects()
-    # bpy.ops.import_scene.gltf(filepath=rendered_glb_file)
-    # rendered_file = generate_filepath("fbx")
-    # await export_fbx_file(rendered_file)
-    # print("reverting file")
-    # bpy.ops.wm.revert_mainfile()
-
-    # rendered_file_name = Path(rendered_file).name
-    # rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
-    # metadata.rendered_file_url = rendered_file_url
-    # # metadata.rendered_usdz_url = rendered_glb_url.replace(".glb",".usdz")
-
-
-    # return metadata 
+    metadata.generate_json_attributes()
     task = tasks.render_fbx_task.apply_async(args=[metadata.dict()])
     return JSONResponse({"task_id": task.id})
 
@@ -449,10 +359,8 @@ async def render_jpeg_file(rendered_file):
 
 @app.post("/render_jpeg", response_class=JSONResponse, tags=["render"])
 async def render_jpeg(metadata: Metadata, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90):
+    metadata.generate_json_attributes()
 
-  
-
-    
     task = tasks.render_jpeg_task.apply_async(args=[metadata.dict(), resolution_x, resolution_y, samples, file_format, quality])
     # return metadata
     return JSONResponse({"task_id": task.id})
