@@ -268,6 +268,12 @@ async def render_glb(metadata: Metadata):
     task = tasks.render_glb_task.apply_async(args=[metadata.dict()])
     return JSONResponse({"task_id": task.id})
 
+@app.post("/render_usdz", response_class=JSONResponse, tags=["render"])
+async def render_usdz(metadata: Metadata):
+    metadata.generate_json_attributes()
+    task = tasks.render_usdz_task.apply_async(args=[metadata.dict()])
+    return JSONResponse({"task_id": task.id})
+
 @app.post("/generate_batch", response_class=JSONResponse, tags=["generator"])
 def generate_batch(number_to_generate: int, starting_id: int = 1):
     group_list = []
@@ -285,7 +291,7 @@ def generate_batch(number_to_generate: int, starting_id: int = 1):
 
 
 @app.post("/render_batch", response_class=JSONResponse, tags=["render"])
-def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_open_blend_file: bool = False):
+def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_render_usdz: bool = False, should_open_blend_file: bool = False):
     group_list = []
     for metadata in metadata_list.metadata_list:
         metadata.generate_json_attributes()
@@ -300,6 +306,9 @@ def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, 
             group_list.append(task)
         if should_render_vrm:
             task = tasks.render_vrm_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_usdz:
+            task = tasks.render_usdz_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
             group_list.append(task)
          
     job = group(group_list)

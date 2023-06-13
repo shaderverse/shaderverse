@@ -9,6 +9,7 @@ import tempfile
 from shaderverse.mesh import Mesh
 from shaderverse.model import Metadata, Attribute, AttributeModel
 from shaderverse.api.utils import get_temporary_directory
+from shaderverse.api.third_party.usdzconvert import usdzconvert
 
 def open_blend_file(filepath: str = bpy.data.filepath):
     bpy.ops.wm.open_mainfile(filepath=filepath)
@@ -211,6 +212,35 @@ def render_fbx_task(self, metadata: dict, should_open_blend_file: bool = False):
 
     return metadata 
 
+def export_usdz_file(rendered_glb_file, rendered_usdz_file):
+    argument_list = [rendered_glb_file, rendered_usdz_file]
+    usdzconvert.tryProcess(argument_list)
+
+@shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
+              name='render:render_usdz_task')
+def render_usdz_task(self, metadata: dict, should_open_blend_file: bool = False):
+    if should_open_blend_file:
+        open_blend_file()
+    mesh = Mesh()
+    id = metadata["id"]
+    bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["json_attributes"])
+    
+    metadata = handle_rendering(mesh)
+
+    rendered_glb_file = generate_filepath("glb")
+    export_glb_file(rendered_glb_file)
+    
+    rendered_file = generate_filepath("usdz")
+    export_usdz_file(rendered_glb_file=rendered_glb_file, rendered_usdz_file=rendered_file)
+    print("reverting file")
+    bpy.ops.wm.revert_mainfile()
+
+    rendered_file_name = Path(rendered_file).name
+    rendered_file_url = f"http://localhost:8118/rendered/{rendered_file_name}" 
+    metadata.rendered_file_url = rendered_file_url
+    metadata.id = id
+
+    return metadata 
 
 def render_jpeg_file(rendered_file):
     bpy.context.scene.render.filepath = rendered_file
