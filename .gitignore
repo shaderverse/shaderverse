@@ -13,3 +13,4 @@ rendered/**/*.jpg
 *.glb
 *.usdz
 **/renders/**/*.jpg
+.DS_Store
