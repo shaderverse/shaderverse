@@ -3,23 +3,17 @@ import uvicorn
 import os 
 import json
 import requests
-from fastapi import Depends, FastAPI, File, BackgroundTasks, Request, Response, HTTPException
-from shaderverse.model import Metadata, Attribute, MetadataList, AttributeModel
-from shaderverse.api.model import SessionData, SessionStatus, RenderedFile
-from typing import Generator, List
+from fastapi import  FastAPI, Request, HTTPException
+from shaderverse.model import Metadata,  MetadataList
+from typing import List
 import tempfile
-import base64
 import sys
 from shaderverse.mesh import Mesh
-from shaderverse.api import deps
 from shaderverse import bl_info
 import bpy
-# import ray
-# from ray import serve
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
 
-from uuid import uuid4
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,8 +28,6 @@ import logging
 from shaderverse.api.utils import get_temporary_directory
 
 
-
-rendered_files: List[RenderedFile] = []
 
 def get_shaderverse_version():
     version_tuple = bl_info["version"]
@@ -136,8 +128,6 @@ async def export_glb_file(glb_filename: str):
 async def shutdown_event():
     bpy.ops.wm.quit_blender()
 
-
-
 @app.post("/generate", response_class=JSONResponse, tags=["generator"])
 async def generate():
     task = tasks.generate_task.apply_async()
@@ -168,41 +158,17 @@ async def get_batch_metadata_status(batch_id: str) -> dict:
     """
     result = get_batch_info(batch_id)
     _metadata_list: List[Metadata] = []
-    # logging.info(f"result: {result}")
     try:
         for task_result in result["batch_result"]:
-         
-            
-            # result_filename = task_result["task_result"]["filename"]
-            # result_attributes = task_result["task_result"]["attributes"]
-            # metadata = Metadata()\
-
-
-            # result_dict = task_result["task_result"].to_dict()
-            # metadata = Metadata(result_dict)
-            
             metadata: Metadata = task_result["task_result"]
             metadata.set_attributes_from_json()
-
-            # metadata.filename = result_filename
-            # metadata.attributes = result_attributes
-
             _metadata_list.append(metadata)
         metadata_list = MetadataList(metadata_list=_metadata_list)
         logging.info(f"metadata_list: {metadata_list}")
     except Exception as e:
         metadata_list = JSONResponse({"error": str(e)})
 
-    # return result['batch_result'][0]
     return metadata_list
-
-def set_active_object(object_ref):
-    bpy.context.view_layer.objects.active = object_ref
-    
-
-class GlbResponse(FileResponse):
-    media_type = "model/gltf-binary"
-
 
 
 @app.get("/rendered/{file_id}", response_class=FileResponse, tags=["download"])
@@ -212,7 +178,6 @@ def get_rendered_file(file_id: str):
     file_path = Path(temp_dir, file_id)
     print(f"file_path: {file_path}")
     return FileResponse(str(file_path))
-
 
 @app.get("/openapi", response_class=JSONResponse, tags=["download"])
 def get_openapi_json(request: Request):
@@ -236,32 +201,6 @@ def generate_filepath(extension: str) -> str:
     temp_file_path = os.path.join(temp_dir_name,temp_file_name)
     return temp_file_path
 
-def set_object_visibility(mesh: Mesh):
-    """ Set the visibility of all objects in the generated mesh to be visible"""
-    objects = mesh.get_objects()
-
-    for obj in objects:
-        print(f"setting visibility of {obj.name} to visible")
-        obj.hide_set(False)
-        obj.hide_render = False
-    
-
-async def handle_rendering(mesh: Mesh):
-    mesh.update_geonodes_from_metadata()
-    # nft.make_animated_objects_visible()
-    set_object_visibility(mesh)
-    bpy.ops.shaderverse.realize() 
-    
-    
-    generated_metadata: List[Attribute] = json.loads(bpy.context.scene.shaderverse.generated_metadata)
-    metadata = Metadata(
-        filename=bpy.data.filepath,attributes=generated_metadata)
-
-    return (metadata)
-
-async def make_glb_response(rendered_file: RenderedFile):
-    return GlbResponse(rendered_file.file_path,media_type="model/gltf-binary")
-    
 @app.post("/render_glb", response_class=JSONResponse, tags=["render"])
 async def render_glb(metadata: Metadata):
     metadata.generate_json_attributes()
@@ -272,6 +211,30 @@ async def render_glb(metadata: Metadata):
 async def render_usdz(metadata: Metadata):
     metadata.generate_json_attributes()
     task = tasks.render_usdz_task.apply_async(args=[metadata.dict()])
+    return JSONResponse({"task_id": task.id})
+
+@app.post("/render_vrm", response_class=JSONResponse, tags=["render"])
+async def render_vrm(metadata: Metadata):
+    is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
+    if not is_vrm_installed:
+        raise HTTPException(status_code=404, detail="VRM addon not installed")
+    
+    metadata.generate_json_attributes()
+    task = tasks.render_vrm_task.apply_async(args=[metadata.dict()])
+    return JSONResponse({"task_id": task.id})
+
+@app.post("/render_fbx", response_class=JSONResponse, tags=["render"])
+async def render_fbx(metadata: Metadata):
+    metadata.generate_json_attributes()
+    task = tasks.render_fbx_task.apply_async(args=[metadata.dict()])
+    return JSONResponse({"task_id": task.id})
+
+@app.post("/render_jpeg", response_class=JSONResponse, tags=["render"])
+async def render_jpeg(metadata: Metadata, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90):
+    metadata.generate_json_attributes()
+
+    task = tasks.render_jpeg_task.apply_async(args=[metadata.dict(), resolution_x, resolution_y, samples, file_format, quality])
+    # return metadata
     return JSONResponse({"task_id": task.id})
 
 @app.post("/generate_batch", response_class=JSONResponse, tags=["generator"])
@@ -287,8 +250,6 @@ def generate_batch(number_to_generate: int, starting_id: int = 1):
     result.save()
 
     return JSONResponse({"batch_id": result.id})
-
-
 
 @app.post("/render_batch", response_class=JSONResponse, tags=["render"])
 def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_render_usdz: bool = False, should_open_blend_file: bool = False):
@@ -318,65 +279,6 @@ def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, 
     return JSONResponse({"batch_id": result.id})
 
 
-async def export_vrm_file(rendered_file):
-    bpy.ops.export_scene.vrm(filepath=rendered_file)
-
-
-@app.post("/render_vrm", response_class=JSONResponse, tags=["render"])
-async def render_vrm(metadata: Metadata):
-    is_vrm_installed = len(dir(bpy.ops.vrm)) > 0
-    if not is_vrm_installed:
-        raise HTTPException(status_code=404, detail="VRM addon not installed")
-    
-    metadata.generate_json_attributes()
-    task = tasks.render_vrm_task.apply_async(args=[metadata.dict()])
-    return JSONResponse({"task_id": task.id})
-
-
-
-
-
-async def export_fbx_file(rendered_file):
-    # unpack all files so that textures are detected
-    bpy.ops.file.unpack_all(method='USE_LOCAL')
-    # use FBX export options with best Unreal compatibility 
-    bpy.ops.export_scene.fbx(filepath=rendered_file,
-                            apply_scale_options='FBX_SCALE_UNITS',
-                            apply_unit_scale=False,
-                            mesh_smooth_type='EDGE',
-                            use_tspace=True,
-                            add_leaf_bones=False,  
-                            path_mode="COPY", 
-                            embed_textures=True )
-
-def delete_all_objects():
-    """ Delete all objects in the scene"""
-    for obj in bpy.data.objects:
-        bpy.data.objects.remove(obj)
-
-@app.post("/render_fbx", response_class=JSONResponse, tags=["render"])
-async def render_fbx(metadata: Metadata):
-    metadata.generate_json_attributes()
-    task = tasks.render_fbx_task.apply_async(args=[metadata.dict()])
-    return JSONResponse({"task_id": task.id})
-
-
-async def render_jpeg_file(rendered_file):
-    bpy.context.scene.render.filepath = rendered_file
-    bpy.ops.render.render(use_viewport = False, write_still=True)
-    
-
-@app.post("/render_jpeg", response_class=JSONResponse, tags=["render"])
-async def render_jpeg(metadata: Metadata, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90):
-    metadata.generate_json_attributes()
-
-    task = tasks.render_jpeg_task.apply_async(args=[metadata.dict(), resolution_x, resolution_y, samples, file_format, quality])
-    # return metadata
-    return JSONResponse({"task_id": task.id})
-
-
-
-
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Python script to bootstrap Uvicorn')
 
@@ -384,41 +286,13 @@ def get_args() -> argparse.Namespace:
                         help='the port', 
                         dest='port', type=int, required=False,
                         default=8118)
-    
-    # parser.add_argument('--blend_file', 
-    #                     help='the blend file', 
-    #                     dest='blend_file', required=True
-    #                     )
-    # args = parser.parse_args(sys.argv[sys.argv.index("--")+1:]) #read args past '--'
-    
+   
     python_args = sys.argv[sys.argv.index("--")+1:]
     args, unknown = parser.parse_known_args(args=python_args)
     return args
 
-# def get_port() -> int:
-
-#     # args = parser.parse_args(sys.argv[sys.argv.index("--")+1:]) #read args past '--'
-#     args = sys.argv
-#     port = args[args.index("--port")+1]
-#     print(port)
-#     return port
-
-# @serve.deployment(route_prefix="/")
-# @serve.ingress(app)
-# class FastAPIWrapper:
-#     pass
-
 if __name__ == "__main__":
     args = get_args()
-
-
-    # serve.run(FastAPIWrapper.bind())
-    # log_config=str(Path(SCRIPT_PATH, "log.ini"))
-
-    # print(f"log config: {log_config}")
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s')
 
-
     uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port)
-
-    # uvicorn.run(app="main:app", app_dir=SCRIPT_PATH, host="::", port=args.port, log_level="debug")
