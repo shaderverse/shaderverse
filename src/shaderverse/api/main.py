@@ -101,13 +101,17 @@ async def generate():
     return JSONResponse({"task_id": task.id})
 
 @app.get("/task/{task_id}", tags=["task"])
-async def get_task_status(task_id: str) -> dict:
+async def get_task_status(task_id: str, request: Request) -> dict:
     """
     Return the status of the submitted Task
     """
     task_info = get_task_info(task_id)
     metadata: Metadata = task_info["task_result"]
     metadata.set_attributes_from_json()
+    if metadata.rendered_file_url:
+        rendered_file_url = metadata.rendered_file_url.replace("http://localhost:8118/", str(request.base_url))
+        metadata.rendered_file_url = rendered_file_url
+
     task_info["task_result"] = metadata
     return task_info
 
@@ -119,7 +123,7 @@ async def get_batch_status(batch_id: str) -> dict:
     return get_batch_info(batch_id)
 
 @app.get("/batch_metadata/{batch_id}", tags=["task"])
-async def get_batch_metadata_status(batch_id: str) -> dict:
+async def get_batch_metadata_status(batch_id: str, request: Request) -> dict:
     """
     Return the metadata of the submitted Batch
     """
@@ -130,6 +134,10 @@ async def get_batch_metadata_status(batch_id: str) -> dict:
             metadata: Metadata = task_result["task_result"]
             metadata.set_attributes_from_json()
             _metadata_list.append(metadata)
+            if metadata.rendered_file_url:
+                rendered_file_url = metadata.rendered_file_url.replace("http://localhost:8118/", str(request.base_url))
+                metadata.rendered_file_url = rendered_file_url
+            
         metadata_list = MetadataList(metadata_list=_metadata_list)
         logging.info(f"metadata_list: {metadata_list}")
     except Exception as e:
@@ -244,7 +252,6 @@ def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, 
     result.save()
 
     return JSONResponse({"batch_id": result.id})
-
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Python script to bootstrap Uvicorn')
