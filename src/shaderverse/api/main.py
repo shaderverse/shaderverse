@@ -4,7 +4,8 @@ import os
 import json
 import requests
 from fastapi import  FastAPI, Request, HTTPException
-from shaderverse.model import Metadata,  MetadataList
+from shaderverse.model import Parameters2d
+from shaderverse.dynamic_model import Metadata, MetadataList
 from typing import List
 import tempfile
 import sys
@@ -106,13 +107,14 @@ async def get_task_status(task_id: str, request: Request) -> dict:
     Return the status of the submitted Task
     """
     task_info = get_task_info(task_id)
-    metadata: Metadata = task_info["task_result"]
-    metadata.set_attributes_from_json()
-    if metadata.rendered_file_url:
-        rendered_file_url = metadata.rendered_file_url.replace("http://localhost:8118/", str(request.base_url))
-        metadata.rendered_file_url = rendered_file_url
+    if type(task_info["task_result"]) == Metadata:
+        metadata: Metadata = task_info["task_result"]
+        metadata.set_attributes_from_json()
+        if metadata.rendered_file_url:
+            rendered_file_url = metadata.rendered_file_url.replace("http://localhost:8118/", str(request.base_url))
+            metadata.rendered_file_url = rendered_file_url
 
-    task_info["task_result"] = metadata
+        task_info["task_result"] = metadata
     return task_info
 
 @app.get("/batch/{batch_id}", tags=["task"])
@@ -205,10 +207,40 @@ async def render_fbx(metadata: Metadata):
     return JSONResponse({"task_id": task.id})
 
 @app.post("/render_jpeg", response_class=JSONResponse, tags=["render"])
-async def render_jpeg(metadata: Metadata, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90):
+async def render_jpeg(metadata: Metadata, render_params: Parameters2d | None = None ):
+    if render_params is None:
+        render_params = Parameters2d()
     metadata.generate_json_attributes()
 
-    task = tasks.render_jpeg_task.apply_async(args=[metadata.dict(), resolution_x, resolution_y, samples, file_format, quality])
+    task = tasks.render_2d_task.apply_async(args=[metadata.dict(), render_params.dict(), "jpg"])
+    # return metadata
+    return JSONResponse({"task_id": task.id})
+
+
+@app.post("/render_mp4", response_class=JSONResponse, tags=["render"])
+async def render_mp4(metadata: Metadata, render_params: Parameters2d | None = None):
+    if render_params is None:
+        render_params = Parameters2d()
+    metadata.generate_json_attributes()
+    task = tasks.render_2d_task.apply_async(args=[metadata.dict(), render_params, "mp4"])
+    # return metadata
+    return JSONResponse({"task_id": task.id})
+
+@app.post("/render_mov", response_class=JSONResponse, tags=["render"])
+async def render_mov(metadata: Metadata, render_params: Parameters2d | None = None):
+    if render_params is None:
+        render_params = Parameters2d()
+    metadata.generate_json_attributes()
+    task = tasks.render_2d_task.apply_async(args=[metadata.dict(), render_params, "mov"])
+    # return metadata
+    return JSONResponse({"task_id": task.id})
+
+@app.post("/render_gif", response_class=JSONResponse, tags=["render"])
+async def render_gif(metadata: Metadata, render_params: Parameters2d | None = None):
+    if render_params is None:
+        render_params = Parameters2d()
+    metadata.generate_json_attributes()
+    task = tasks.render_2d_task.apply_async(args=[metadata.dict(),render_params.dict(), "gif"])
     # return metadata
     return JSONResponse({"task_id": task.id})
 
@@ -227,15 +259,34 @@ def generate_batch(number_to_generate: int, starting_id: int = 1):
     return JSONResponse({"batch_id": result.id})
 
 @app.post("/render_batch", response_class=JSONResponse, tags=["render"])
-def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_render_usdz: bool = False, should_open_blend_file: bool = False):
+def render_batch(metadata_list: MetadataList, should_render_jpeg: bool = False, jpeg_params: Parameters2d | None = None, should_render_fbx: bool = False, should_render_glb: bool = False, should_render_vrm: bool = False, should_render_usdz: bool = False, should_render_mp4: bool = False, mp4_params: Parameters2d | None = None, should_render_mov: bool = False, mov_params: Parameters2d | None = None, should_render_gif:bool = False,  gif_params: Parameters2d | None = None, should_open_blend_file: bool = False):
     group_list = []
     for metadata in metadata_list.metadata_list:
         metadata.generate_json_attributes()
         if should_render_glb:
+            if glb_params is None:
+                glb_params = Parameters2d()
             task = tasks.render_glb_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
             group_list.append(task)
         if should_render_jpeg:
-            task = tasks.render_jpeg_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)
+            if jpeg_params is None:
+                jpeg_params = Parameters2d()
+            task = tasks.render_2d_task.s(metadata.dict(),params_2d=jpeg_params.dict(), render_file_type="jpg",should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_mp4:
+            if mp4_params is None:
+                mp4_params = Parameters2d()
+            task = tasks.render_2d_task.s(metadata.dict(),params_2d=mp4_params.dict(), render_file_type="mp4" ,should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_mov:
+            if mov_params is None:
+                mov_params = Parameters2d()
+            task = tasks.render_2d_task.s(metadata.dict(),params_2d=mov_params.dict(), render_file_type="mov",should_open_blend_file=should_open_blend_file)
+            group_list.append(task)
+        if should_render_gif:
+            if gif_params is None:
+                gif_params = Parameters2d()
+            task = tasks.render_2d_task.s(metadata.dict(),params_2d=gif_params.dict(), render_file_type="gif" ,should_open_blend_file=should_open_blend_file)
             group_list.append(task)
         if should_render_fbx:
             task = tasks.render_fbx_task.s(metadata.dict(), should_open_blend_file=should_open_blend_file)

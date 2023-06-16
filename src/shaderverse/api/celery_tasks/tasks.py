@@ -7,9 +7,13 @@ import json
 import os
 import tempfile
 from shaderverse.mesh import Mesh
-from shaderverse.model import Metadata, Attribute, AttributeModel
-from shaderverse.api.utils import get_temporary_directory
+from shaderverse.model import Parameters2d, Binary
+from shaderverse.dynamic_model import Metadata, Attribute
+from shaderverse.api.utils import get_temporary_directory, get_os
 from shaderverse.api.third_party.usdzconvert import usdzconvert
+from shaderverse.config.binaries import ffmpeg
+import subprocess
+import logging
 
 def open_blend_file(filepath: str = bpy.data.filepath):
     bpy.ops.wm.open_mainfile(filepath=filepath)
@@ -245,29 +249,76 @@ def render_usdz_task(self, metadata: dict, should_open_blend_file: bool = False)
 def render_jpeg_file(rendered_file):
     bpy.context.scene.render.filepath = rendered_file
     bpy.ops.render.render(use_viewport = False, write_still=True)
+
+def render_mp4_file(rendered_file):
+    bpy.context.scene.render.filepath = rendered_file
+    bpy.context.scene.render.image_settings.file_format = 'FFMPEG'
+    bpy.context.scene.render.ffmpeg.format = 'MPEG4'
+    bpy.context.scene.render.ffmpeg.codec = 'H264'
+    bpy.ops.render.render(use_viewport = False, animation=True, write_still=True)
+
+def render_mov_file(rendered_file):
+    bpy.context.scene.render.filepath = rendered_file
+    bpy.context.scene.render.film_transparent = True
+    bpy.context.scene.render.image_settings.file_format = 'FFMPEG'
+    bpy.context.scene.render.ffmpeg.format = 'QUICKTIME'
+    bpy.context.scene.render.ffmpeg.codec = 'PNG'
+    bpy.context.scene.render.image_settings.color_mode = 'RGBA'
+
+    bpy.ops.render.render(use_viewport = False, animation=True, write_still=True)
+
+    
+def get_render_method(render_file_type: str):
+    if render_file_type == "jpg":
+        return render_jpeg_file
+    elif render_file_type == "mp4":
+        return render_mp4_file
+    elif render_file_type == "mov" or render_file_type == "gif":
+        return render_mov_file
+    
+def convert_mov_to_gif(rendered_file):
+    current_os = get_os()
+    ffmpeg_binary = ffmpeg.dict()["files"].get(current_os)
+    ffmpeg_path = Path(ffmpeg.base_dir, ffmpeg.binary_name, ffmpeg_binary)
+    cmd = [ffmpeg_path, "-i", rendered_file, "-f", "gif", "-lavfi", "split[v],palettegen,[v]paletteuse", rendered_file.replace(".mov", ".gif")]
+    logging.info(f"converting mov to gif: {cmd}")
+    subprocess.run(cmd)
     
 
-
 @shared_task(bind=True,autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 5},
-              name='render:render_jpeg_task')
-def render_jpeg_task(self, metadata: dict, resolution_x: int = 720, resolution_y: int = 720, samples: int = 64, file_format: str = "JPEG", quality: int = 90, should_open_blend_file: bool = False):
+              name='render:render_2d_task')
+def render_2d_task(self, metadata: dict, params_2d: dict, render_file_type: str, should_open_blend_file: bool = False):
     if should_open_blend_file:
         open_blend_file()
     mesh = Mesh()
     id = metadata["id"]
-    bpy.context.scene.render.resolution_x = resolution_x
-    bpy.context.scene.render.resolution_y = resolution_y
-    bpy.data.scenes["Scene"].cycles.samples = samples
+    render_params = Parameters2d(**params_2d)
+    bpy.context.scene.render.resolution_x = render_params.resolution_x
+    bpy.context.scene.render.resolution_y = render_params.resolution_y
+    bpy.data.scenes["Scene"].cycles.samples = render_params.samples
     bpy.context.scene.render.resolution_percentage = 100
+    bpy.context.scene.render.fps = render_params.fps
+
     # TODO: makeformat an enum
-    bpy.context.scene.render.image_settings.file_format = file_format
-    if file_format == 'JPEG':
-        bpy.context.scene.render.image_settings.quality = quality
+    if render_file_type == "jpg":
+        bpy.context.scene.render.image_settings.file_format = 'JPEG'
+    else:
+        bpy.context.scene.render.image_settings.file_format = 'PNG'
+    
+    bpy.context.scene.render.image_settings.quality = render_params.quality
+        
     bpy.context.scene.shaderverse.generated_metadata = json.dumps(metadata["json_attributes"])
     
     metadata = handle_rendering(mesh)
-    rendered_file = generate_filepath("jpg")
-    render_jpeg_file(rendered_file)
+    rendered_file = generate_filepath(render_file_type)
+    if render_file_type == "gif":
+        rendered_file = rendered_file.replace(".gif", ".mov")
+    render_method = get_render_method(render_file_type)
+    render_method(rendered_file)
+    if render_file_type == "gif":
+        rendered_gif = rendered_file.replace(".mov", ".gif")
+        convert_mov_to_gif(rendered_file)
+        rendered_file = rendered_gif
     print("reverting file")
     bpy.ops.wm.revert_mainfile()
 
