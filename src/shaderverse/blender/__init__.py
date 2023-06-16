@@ -398,9 +398,8 @@ class SHADERVERSE_PT_preferences(bpy.types.AddonPreferences):
 
         # layout.prop(self, "modules_installed", text="Addon Installed")
         if not self.modules_installed:
-            from .install_modules import process
-            print(f"process status from preferences: {process.status}")
-            if process.status == "running":
+            from .install_modules import install_modules_completed
+            if install_modules_completed == False:
                 layout.label(text="Installing modules...")
             else:
                 layout = self.layout
