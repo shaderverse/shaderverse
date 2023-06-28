@@ -1,5 +1,5 @@
 from shaderverse.mesh import Mesh, NodeInput
-from pydantic import BaseModel, create_model, Field
+from pydantic import BaseModel, create_model, Field, validator
 import logging
 from shaderverse.model import Attribute
 from typing import List
@@ -47,6 +47,18 @@ class Metadata(BaseModel):
     rendered_glb_url: str = None
     rendered_usdz_url: str = None
     rendered_file_url: str = None
+
+    @validator("attributes")
+    def validate_not_in_schema(cls, attributes: AttributeModel):
+        for attribute in attributes.dict().keys():
+            value = attributes.dict()[attribute]
+            allowed_values = attributes.schema()["properties"][attribute]["enum"]
+            if allowed_values and len(allowed_values) > 0:
+                if value not in attributes.schema()["properties"][attribute]["enum"]:
+                    raise ValueError(f"Value: {value} is not a valid option for {attribute}")
+            
+        return attributes
+
 
     def generate_json_attributes(self):
 

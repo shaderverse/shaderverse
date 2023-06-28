@@ -180,6 +180,7 @@ def generate_filepath(extension: str) -> str:
 
 @app.post("/render_glb", response_class=JSONResponse, tags=["render"])
 async def render_glb(metadata: Metadata):
+    
     metadata.generate_json_attributes()
     task = tasks.render_glb_task.apply_async(args=[metadata.dict()])
     return JSONResponse({"task_id": task.id})
